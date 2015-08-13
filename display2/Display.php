@@ -42,11 +42,11 @@ class Display extends \yii\base\Component
     /**
      * @var string FULL path to cache directory
      */
-    public $cacheDir    = '@webroot/display-images-cache';
+    public $cacheDir    = '@webroot/display-images-cache2';
     /**
      * @var string URL path to cache directory
      */
-    public $cacheWebDir = '@web/display-images-cache';
+    public $cacheWebDir = '@web/display-images-cache2';
     /**
      * integer - rewrite image after seconds
      * null - disable rewrite image
@@ -103,13 +103,22 @@ class Display extends \yii\base\Component
         if (!isset($imageConfig['class'])) {
             $imageConfig['class'] = $this->imageClass;
         }
-        return Yii::createObject(ArrayHelper::merge($imageConfig, $config));
+
+        $config = ArrayHelper::merge($imageConfig, $config);
+
+        if (!isset($config['category'])) {
+            throw new InvalidConfigException('The "category" property must be set.');
+        }
+        if (!isset($this->categories[$config['category']])) {
+            throw new InvalidConfigException('Set category in Display configuration!');
+        }
+
+        return Yii::createObject(ArrayHelper::merge($this->categories[$config['category']], $config));
     }
 
     /**
      * @param array $imageConfig
      * @return \pavlinter\display2\Image
-     * @throws \yii\base\Exception
      */
     public function getImage($imageConfig = [])
     {
@@ -118,16 +127,19 @@ class Display extends \yii\base\Component
         if ($image->image && $this->isImage($image->imagesDir . $image->getIdRowPath() . $image->image)) {
             if (!$image->width && !$image->height) {
                 $image->src = $image->imagesWebDir . $image->getIdRowPath() . $image->image;
+                $image->rootSrc = $image->imagesDir . $image->getIdRowPath() . $image->image;
             } else {
-                $image->src = $this->resize($image);
+                $this->resize($image);
             }
         } else {
             if (!$image->width && !$image->height) {
                 $image->src = $image->defaultWebDir . $image->defaultImage;
+                $image->rootSrc = $image->defaultDir . $image->defaultImage;
             } else {
-                $image->src = $this->resizeDefault($image);
+                $this->resizeDefault($image);
             }
         }
+        $image->appendTimestamp();
         return $image;
     }
 
@@ -148,9 +160,7 @@ class Display extends \yii\base\Component
      */
     public function showImage($imageConfig = [])
     {
-
         $image = $this->getImage($imageConfig);
-
         if ($image->absolutePath === true) {
             $src = Yii::$app->getRequest()->getHostInfo() . $image->src;
         } else if(is_string($image->absolutePath)) {
@@ -158,75 +168,12 @@ class Display extends \yii\base\Component
         } else {
             $src = $image->src;
         }
-
-
         return Html::img($src, $image->options);
     }
 
     /**
      * @param $image \pavlinter\display2\Image
-     * @return string
-     */
-    public function resizeDefault($image)
-    {
-        $filePath   = $image->defaultDir . $image->defaultImage;
-
-
-        if ($image->generalDefaultDir) {
-            $defCat = $image->defaultCategory . '/';
-        } else {
-            $defCat = $image->category . '/' . $image->defaultCategory . '/';
-        }
-        $defaultDir      = Yii::getAlias(rtrim($this->cacheDir, '/')) . '/' . $defCat;
-        $defaultWebDir   = Yii::getAlias(rtrim($this->cacheWebDir, '/')) . '/' . $defCat;
-        FileHelper::createDirectory($defaultDir);
-
-
-        $exists = file_exists($defaultDir . $image->sizeDirectory . $image->defaultImage);
-        if ($exists && $this->cacheSeconds !== null) {
-            $cacheFiletime = filemtime($defaultDir . $image->sizeDirectory . $image->defaultImage);
-            if ($this->cacheSeconds === 'auto') {
-                $filemtime = filemtime($filePath);
-                if ($filemtime !== $cacheFiletime) {
-                    $exists = false;
-                }
-            } else {
-                $exists = time() <= $this->cacheSeconds + $cacheFiletime;
-            }
-        }
-
-        if (!$exists) {
-
-            if ($this->_maxResized >= $this->maxResize) {
-                return $defaultWebDir . $image->defaultImage;
-            }
-            $this->_maxResized++;
-
-            FileHelper::createDirectory($defaultDir . $image->sizeDirectory);
-            $img = \yii\imagine\Image::getImagine()->open($filePath);
-            if ($image->resize instanceof \Closure) {
-                $img = call_user_func($image->resize, $image, $img);
-            } elseif ($image->mode === $image::MODE_STATIC) {
-                $img = $this->resizeStatic($image, $img);
-            } elseif ($image->mode === $image::MODE_MIN) {
-                $img = $this->resizeMin($image, $img);
-            } else {
-                $img = $img->thumbnail(new Box($image->width, $image->height), $image->mode);
-            }
-            $newImage = $defaultDir . $image->sizeDirectory . $image->defaultImage;
-
-            $img->save($newImage);
-            if ($this->cacheSeconds === 'auto') {
-                $filemtime = filemtime($filePath);
-                touch($newImage, $filemtime);
-            }
-        }
-        return $defaultWebDir . $image->sizeDirectory . $image->defaultImage;
-    }
-
-    /**
-     * @param $image \pavlinter\display2\Image
-     * @return string
+     * @return bool
      */
     public function resize($image)
     {
@@ -242,11 +189,11 @@ class Display extends \yii\base\Component
         }
 
         if ($image->name) {
-            $ext = '.' . DisplayHelper::getExtension($imageName);
+            $ext = '.' . $this->getExtension($imageName);
             if ($image->encodeName instanceof \Closure) {
                 $imageName = call_user_func($image->encodeName, $image->name). $ext;
             } else {
-                $imageName = DisplayHelper::encodeName($image->name) . $ext;
+                $imageName = $this->encodeName($image->name) . $ext;
             }
         }
         if (!isset($image->options['alt'])) {
@@ -271,7 +218,9 @@ class Display extends \yii\base\Component
         }
         if (!$exists) {
             if ($this->_maxResized >= $this->maxResize) {
-                return $image->imagesWebDir . $image->getIdRowPath() . $image->image;
+                $image->src = $image->imagesWebDir . $image->getIdRowPath() . $image->image;
+                $image->rootSrc = $image->imagesDir . $image->getIdRowPath() . $image->image;
+                return false;
             }
             $this->_maxResized++;
 
@@ -293,8 +242,79 @@ class Display extends \yii\base\Component
                 touch($newImage, $filemtime);
             }
         }
-        return $imagesWebDir . $image->sizeDirectory . $dir . $imageName;
+
+        $image->src = $imagesWebDir . $image->sizeDirectory . $dir . $imageName;
+        $image->rootSrc = $imagesDir . $image->sizeDirectory . $dir . $imageName;
+        return true;
     }
+
+    /**
+     * @param $image \pavlinter\display2\Image
+     * @return bool
+     */
+    public function resizeDefault($image)
+    {
+        $filePath   = $image->defaultDir . $image->defaultImage;
+
+        if ($image->generalDefaultDir) {
+            $defCat = $image->defaultCategory . '/';
+        } else {
+            $defCat = $image->category . '/' . $image->defaultCategory . '/';
+        }
+        $defaultDir      = Yii::getAlias(rtrim($this->cacheDir, '/')) . '/' . $defCat;
+        $defaultWebDir   = Yii::getAlias(rtrim($this->cacheWebDir, '/')) . '/' . $defCat;
+        FileHelper::createDirectory($defaultDir);
+
+        if (!isset($image->options['alt'])) {
+            $image->options['alt'] = basename($image->defaultImage);
+        }
+
+        $exists = file_exists($defaultDir . $image->sizeDirectory . $image->defaultImage);
+        if ($exists && $this->cacheSeconds !== null) {
+            $cacheFiletime = filemtime($defaultDir . $image->sizeDirectory . $image->defaultImage);
+            if ($this->cacheSeconds === 'auto') {
+                $filemtime = filemtime($filePath);
+                if ($filemtime !== $cacheFiletime) {
+                    $exists = false;
+                }
+            } else {
+                $exists = time() <= $this->cacheSeconds + $cacheFiletime;
+            }
+        }
+
+        if (!$exists) {
+
+            if ($this->_maxResized >= $this->maxResize) {
+                $image->src = $defaultWebDir . $image->defaultImage;
+                $image->rootSrc = $defaultDir . $image->defaultImage;
+                return false;
+            }
+            $this->_maxResized++;
+
+            FileHelper::createDirectory($defaultDir . $image->sizeDirectory);
+            $img = \yii\imagine\Image::getImagine()->open($filePath);
+            if ($image->resize instanceof \Closure) {
+                $img = call_user_func($image->resize, $image, $img);
+            } elseif ($image->mode === $image::MODE_STATIC) {
+                $img = $this->resizeStatic($image, $img);
+            } elseif ($image->mode === $image::MODE_MIN) {
+                $img = $this->resizeMin($image, $img);
+            } else {
+                $img = $img->thumbnail(new Box($image->width, $image->height), $image->mode);
+            }
+            $newImage = $defaultDir . $image->sizeDirectory . $image->defaultImage;
+
+            $img->save($newImage);
+            if ($this->cacheSeconds === 'auto') {
+                $filemtime = filemtime($filePath);
+                touch($newImage, $filemtime);
+            }
+        }
+        $image->src = $defaultWebDir . $image->sizeDirectory . $image->defaultImage;
+        $image->rootSrc = $defaultDir . $image->sizeDirectory . $image->defaultImage;
+        return true;
+    }
+
     /**
      * @param $image \pavlinter\display2\Image
      * @param $originalImage
@@ -415,6 +435,309 @@ class Display extends \yii\base\Component
         }
         $format  = strtolower($format);
         return in_array($format, $formats);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /**
+     * @param $category
+     * @param array $options
+     * @return array|bool
+     * @throws InvalidConfigException
+     */
+    public function getFiles($category, $options = [])
+    {
+        if (!isset($this->categories[$category])) {
+            return false;
+        }
+        $config = $this->categories[$category];
+        if (!isset($config['imagesDir'])) {
+            throw new InvalidConfigException('The "imagesDir" property must be set for "' . $category . '".');
+        }
+        $imagesDir      = Yii::getAlias($config['imagesDir']) . '/';
+        $imagesWebDir   = Yii::getAlias($config['imagesWebDir']) . '/';
+
+        $options = ArrayHelper::merge([
+            'recursive' => false,
+            'dir' => '',
+            'isDisplayImagePath' => false,
+            'id_row' => null,
+            'defaultImage' => null,
+            'keyCallback' => function($data){
+                return basename($data['dirName']);
+            },
+            'return' => false, // or function($data){ return $data; } required return string|array and image key
+            'minImages' => 0
+        ], $options);
+
+
+
+        if ($options['return'] !== false && !($options['return'] instanceof \Closure)) {
+            throw new InvalidConfigException('The "return" property must be Closure.');
+        }
+
+
+        $dir = ArrayHelper::remove($options, 'dir');
+        $dir = $dir ? $dir . '/' : '';
+        $keyCallback = ArrayHelper::remove($options, 'keyCallback');
+        $isDisplayImagePath = ArrayHelper::remove($options, 'isDisplayImagePath');
+        $defaultImage = ArrayHelper::remove($options, 'defaultImage');
+        $minImages = ArrayHelper::remove($options, 'minImages');
+        $maxImages = ArrayHelper::remove($options, 'maxImages');
+        $id_row = ArrayHelper::remove($options, 'id_row');
+        $id_row = $id_row ? $id_row . '/' : '';
+
+        $toDir = $imagesDir . $id_row . $dir;
+        FileHelper::createDirectory($toDir);
+        $images = FileHelper::findFiles($toDir, $options);
+        $resImages = [];
+        if ($isDisplayImagePath) {
+            foreach ($images as $k => $image) {
+                if ($maxImages !== null && $k >= $maxImages) {
+                    break;
+                }
+                $pathName = str_replace($imagesDir . $id_row, '', str_replace('\\', '', $image));
+                $data = [
+                    'id_row' => (int)$id_row,
+                    'key' => $k,
+                    'fullPath' => $image,
+                    'dirName' => $pathName,
+                    'imagesDir' => $imagesDir . $id_row,
+                    'imagesWebDir' => $imagesWebDir . $id_row,
+                    'originImage' => $imagesWebDir . $id_row . $pathName,
+                ];
+                $key = call_user_func($keyCallback, $data);
+                if ($options['return'] === false) {
+                    $resImages[$key] = $pathName;
+                } else {
+                    $data['image'] = $pathName;
+                    $resImages[$key] = call_user_func($options['return'], $data);
+                }
+            }
+        } else {
+            foreach ($images as $k => $image) {
+                if ($maxImages !== null && $k >= $maxImages) {
+                    break;
+                }
+                $pathName = str_replace($imagesDir . $id_row, '', str_replace('\\', '', $image));
+                $data = [
+                    'id_row' => (int)$id_row,
+                    'key' => $k,
+                    'fullPath' => $image,
+                    'dirName' => $pathName,
+                    'imagesDir' => $imagesDir,
+                    'imagesWebDir' => $imagesWebDir,
+                    'originImage' => $imagesWebDir . $id_row . $pathName,
+                ];
+                $key = call_user_func($keyCallback, $data);
+                if ($options['return'] === false) {
+                    $resImages[$key] = $data['originImage'];
+                } else {
+                    $data['image'] = $data['originImage'];
+                    $resImages[$key] = call_user_func($options['return'], $data);
+                }
+            }
+        }
+
+
+        if ($minImages && ($count = $minImages - count($resImages)) > 0) {
+
+            if ($options['return'] === false) {
+                for ($i = 0; $i < $count; $i++) {
+                    $resImages[$i] = $defaultImage;
+                }
+            } else {
+
+                for ($i = 0; $i < $count; $i++) {
+                    $data = [
+                        'id_row' => (int)$id_row,
+                        'key' => $i,
+                        'fullPath' => null,
+                        'dirName' => null,
+                        'imagesDir' => $imagesDir,
+                        'imagesWebDir' => $imagesWebDir,
+                        'originImage' => $defaultImage,
+                        'image' => $defaultImage,
+                    ];
+                    $resImages[$i] = call_user_func($options['return'], $data);
+                }
+            }
+        }
+        return $resImages;
+    }
+    /**
+     * @param $id_row
+     * @param $category
+     * @param array $options
+     * @return array|bool
+     * @throws InvalidConfigException
+     */
+    public static function getOriginalImages($id_row, $category, $options = [])
+    {
+        if ($id_row) {
+            $options['id_row'] = $id_row;
+        }
+        if (isset($options['dir'])) {
+            $options['dir'] = trim($options['dir'], '/');
+        }
+        if (!isset($options['only'])) {
+            $extensions = static::supported();
+            foreach ($extensions as $ext) {
+                $options['only'][] = '*.' . $ext;
+            }
+            if ($options['only']) {
+                $options['caseSensitive'] = false;
+            }
+        }
+
+        $files = static::getFiles($category, $options);
+
+        if (!is_array($files)) {
+            return [];
+        }
+        return $files;
+    }
+
+    /**
+     * @param $id_row
+     * @param $category
+     * @param array $options
+     * @return mixed|null
+     */
+    public static function getOriginalImage($id_row, $category, $options = [])
+    {
+        $images = static::getOriginalImages($id_row, $category, $options);
+        if (empty($images)) {
+            return null;
+        }
+        return reset($images);
+    }
+
+    /**
+     * @param $id_row
+     * @param $category
+     * @param array $widget
+     * @param array $options
+     * @return array
+     */
+    public static function getFileImages($id_row, $category, $widget = [], $options = [])
+    {
+        $options['isDisplayImagePath'] = true;
+        $images     = static::getOriginalImages($id_row, $category, $options);
+        $displayImages = [];
+        if (!isset($widget['returnSrc'])) {
+            $widget['returnSrc'] = true;
+        }
+        $widget['category'] = $category;
+        if ($id_row) {
+            $widget['id_row'] = $id_row;
+        }
+        foreach ($images as $k => $image) {
+            if (is_array($image)) {
+                $widget['image'] = $image['image'];
+                $image['display'] = DisplayImage::widget($widget);
+                if ($image['image'] === null) {
+                    $image['image'] = $image['display'];
+                }
+                if ($image['originImage'] === null) {
+                    $image['originImage'] = $image['display'];
+                }
+
+                $displayImages[$k] = $image;
+            } else {
+                $widget['image'] = $image;
+                $displayImages[$k] = DisplayImage::widget($widget);
+            }
+        }
+        return $displayImages;
+    }
+
+    /**
+     * @param $id_row
+     * @param $category
+     * @param array $widget
+     * @param array $options
+     * @return mixed
+     */
+    public function getFileImage($id_row, $category, $widget = [], $options = [])
+    {
+        $images = static::getImages($id_row, $category, $widget, $options);
+
+        if (empty($images)) {
+            return null;
+        }
+        return reset($images);
+    }
+
+    /**
+     * @param $category
+     * @param null $id_row
+     * @return bool
+     */
+    public function clear($category, $id_row = null)
+    {
+        $globalConfig = static::getConfig();
+        $categories = ArrayHelper::remove($globalConfig, 'config');
+
+        if (!isset($categories[$category])) {
+            return false;
+        }
+        $innerCacheDir = ArrayHelper::remove($globalConfig, 'innerCacheDir');
+        $cacheDir = Yii::getAlias(rtrim(ArrayHelper::remove($globalConfig, 'cacheDir', static::CACHE_DIR), '/'));
+        $generalDefaultDir = ArrayHelper::remove($categories[$category], 'generalDefaultDir');
+        if ($generalDefaultDir === null) {
+            $generalDefaultDir = ArrayHelper::remove($globalConfig, 'generalDefaultDir', true);
+        }
+        $defaultCategory = ArrayHelper::remove($categories[$category], 'defaultCategory', static::DEFAULT_CATEGORY);
+        $imagesDir = Yii::getAlias(rtrim(ArrayHelper::remove($categories[$category], 'imagesDir'), '/'));
+        $defaultDir = Yii::getAlias(rtrim(ArrayHelper::remove($categories[$category], 'defaultDir'), '/'));
+
+        if ($id_row) {
+            $id_row = '/' . $id_row;
+        }
+        if ($innerCacheDir) {
+            if (empty($imagesDir)) {
+                return false;
+            }
+            $path = $imagesDir . $id_row . '/' . $innerCacheDir;
+            $defaultCacheDir = $defaultDir . '/' . $innerCacheDir. '/';
+        } else {
+            $path = $cacheDir . '/' . $category . $id_row;
+            if ($generalDefaultDir) {
+                $defaultCacheDir = $cacheDir . '/' .$defaultCategory . '/';
+            } else {
+                $defaultCacheDir = $cacheDir . '/' .$category . '/' . $defaultCategory . '/';
+            }
+        }
+        FileHelper::removeDirectory($path);
+        FileHelper::removeDirectory($defaultCacheDir);
+        return true;
+    }
+
+    /**
+     * Clear all cache (Only for outer directory cache)
+     */
+    public function clearCacheDir()
+    {
+        $globalConfig = static::getConfig();
+
+        $innerCacheDir = ArrayHelper::remove($globalConfig, 'innerCacheDir');
+        if (!$innerCacheDir) {
+            $cacheDir = Yii::getAlias(rtrim(ArrayHelper::remove($globalConfig, 'cacheDir', static::CACHE_DIR), '/'));
+            FileHelper::removeDirectory($cacheDir);
+            return true;
+        }
+        return false;
     }
 
 }

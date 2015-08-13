@@ -15,6 +15,8 @@ use Imagine\Image\ManipulatorInterface;
 
 /**
  * Class Image
+ *
+ * @property string originImage
  */
 class Image extends \yii\base\Object
 {
@@ -50,7 +52,7 @@ class Image extends \yii\base\Object
     /**
      * @var string the default image directory (work if enabled [[innerCacheDir]])
      */
-    public $defaultCategory = DisplayHelper::DEFAULT_CATEGORY;
+    public $defaultCategory = 'default';
     /**
      * @var string general default pictures for all category (work if enabled [[innerCacheDir]])
      */
@@ -59,7 +61,7 @@ class Image extends \yii\base\Object
      * @var string the background color for [[DisplayImage::MODE_STATIC]] or [[DisplayImage::MODE_MIN]] or [[resize]]
      * default white value
      */
-    public $bgColor;
+    public $bgColor = '000000';
     /**
      * @var integer the background transparent for [[DisplayImage::MODE_STATIC]] or [[DisplayImage::MODE_MIN]] or [[resize]]
      * default 0 value (not transparent)
@@ -102,7 +104,7 @@ class Image extends \yii\base\Object
     /**
      * @var string the name default image
      */
-    public $defaultImage;
+    public $defaultImage = 'default.png';
     /**
      * @var callable the own resize
      */
@@ -115,20 +117,20 @@ class Image extends \yii\base\Object
      * @var string
      */
     public $src;
-
+    /**
+     * @var string
+     */
+    public $rootSrc;
+    /**
+     * @var string
+     */
     private $_idRowPath = '';
-
-
     /**
      * @throws InvalidConfigException
      */
     public function init()
     {
         parent::init();
-
-        if (empty($this->category)) {
-            throw new InvalidConfigException('The "category" property must be set.');
-        }
 
         if (empty($this->imagesWebDir)) {
             throw new InvalidConfigException('The "imagesWebDir" property must be set for "' . $this->category . '".');
@@ -169,9 +171,25 @@ class Image extends \yii\base\Object
         $this->sizeDirectory = $this->sizeDirectory . '/' ;
 
         if ($this->id_row) {
-            FileHelper::createDirectory($image->imagesDir . $image->id_row);
+            FileHelper::createDirectory($this->imagesDir . $this->id_row);
             $this->_idRowPath =  $this->id_row . '/';
         }
+    }
+
+    public function appendTimestamp()
+    {
+        $timestamp = @filemtime($this->rootSrc);
+        if ($timestamp > 0) {
+            $this->src .= "?v=" . $timestamp;
+        }
+    }
+
+    /**
+     * @return string
+     */
+    public function getOriginImage()
+    {
+        return $this->imagesWebDir . $this->getIdRowPath() . $this->image;
     }
 
     /**
