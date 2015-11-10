@@ -6,7 +6,7 @@
  * @version 2.0.0
  */
 
-namespace pavlinter\display2;
+namespace pavlinter\display2\objects;
 
 use Yii;
 use yii\base\InvalidConfigException;

@@ -6,7 +6,7 @@
  * @version 2.0.0
  */
 
-namespace pavlinter\display2;
+namespace pavlinter\display2\components;
 
 use Imagine\Image\Box;
 use Yii;
@@ -17,81 +17,70 @@ use yii\helpers\Html;
 
 /**
  * Class Display
+ * @property \pavlinter\display2\Module $displayModule
  */
 class Display extends \yii\base\Component
 {
-    /**
-     * @var array|\Closure
-     * example:
-     * [
-     *  'items' => [
-     *    'imagesWebDir' => '@web/display-images/items',
-     *    'imagesDir' => '@webroot/display-images/items',
-     *    'defaultWebDir' => '@web/display-images/default',
-     *    'defaultDir' => '@webroot/display-images/default',
-     *  ],
-     *  'all' => [
-     *    'imagesWebDir' => '@web/display-images/images',
-     *    'imagesDir' => '@webroot/display-images/images',
-     *    'defaultWebDir' => '@web/display-images/default',
-     *    'defaultDir' => '@webroot/display-images/default',
-     *  ]
-     *]
-     */
-    public $categories;
-    /**
-     * @var string FULL path to cache directory
-     */
-    public $cacheDir    = '@webroot/display-images-cache2';
-    /**
-     * @var string URL path to cache directory
-     */
-    public $cacheWebDir = '@web/display-images-cache2';
-    /**
-     * integer - rewrite image after seconds
-     * null - disable rewrite image
-     * 'auto' - rewrite image if modified file date is different
-     * @var integer|null|string
-     */
-    public $cacheSeconds = 'auto';
-    /**
-     * @var string the default image class name when calling [[image()]] to create a new image.
-     * @see imageConfig
-     */
-    public $imageClass = 'pavlinter\display2\Image';
 
-    /**
-     * @var array|\Closure
-     * @see imageClass
-     */
-    public $imageConfig = [];
-    /**
-     * @var integer max image resize for one request
-     */
-    public $maxResize = 20;
-    /**
-     * @var integer already resized
-     */
-    private $_maxResized = 0;
+    public $moduleId = 'display2';
+
+    public $_displayModule;
 
     /**
      * @throws InvalidConfigException
      */
     public function init()
     {
-        if ($this->categories instanceof \Closure) {
-            $this->categories = call_user_func($this->categories);
-        }
-        if (empty($this->categories)) {
-            throw new InvalidConfigException('The "categories" property must be set.');
-        }
         parent::init();
     }
 
+    /**
+     * @param array $imageConfig
+     * @return string
+     */
+    public function showImage($imageConfig = [])
+    {
+        $image = $this->getImage($imageConfig);
+        if ($image->absolutePath === true) {
+            $src = Yii::$app->getRequest()->getHostInfo() . $image->src;
+        } else if(is_string($image->absolutePath)) {
+            $src = $image->absolutePath . $image->src;
+        } else {
+            $src = $image->src;
+        }
+        return Html::img($src, $image->options);
+    }
+
+    /**
+     * @param array $imageConfig
+     * @return \pavlinter\display2\objects\Image
+     */
+    public function getImage($imageConfig = [])
+    {
+        $image = $this->createImage($imageConfig);
+
+        if ($image->image && $this->isImage($image->imagesDir . $image->getIdRowPath() . $image->image)) {
+            if (!$image->width && !$image->height) {
+                $image->src = $image->imagesWebDir . $image->getIdRowPath() . $image->image;
+                $image->rootSrc = $image->imagesDir . $image->getIdRowPath() . $image->image;
+            } else {
+                $this->resize($image);
+            }
+        } else {
+            if (!$image->width && !$image->height) {
+                $image->src = $image->defaultWebDir . $image->defaultImage;
+                $image->rootSrc = $image->defaultDir . $image->defaultImage;
+            } else {
+                $this->resizeDefault($image);
+            }
+        }
+        $image->appendTimestamp();
+        return $image;
+    }
 
     /**
      * @param array $config
-     * @return \pavlinter\display2\Image
+     * @return \pavlinter\display2\objects\Image
      * @throws InvalidConfigException
      */
     public function createImage($config = [])
@@ -118,33 +107,6 @@ class Display extends \yii\base\Component
 
     /**
      * @param array $imageConfig
-     * @return \pavlinter\display2\Image
-     */
-    public function getImage($imageConfig = [])
-    {
-        $image = $this->createImage($imageConfig);
-
-        if ($image->image && $this->isImage($image->imagesDir . $image->getIdRowPath() . $image->image)) {
-            if (!$image->width && !$image->height) {
-                $image->src = $image->imagesWebDir . $image->getIdRowPath() . $image->image;
-                $image->rootSrc = $image->imagesDir . $image->getIdRowPath() . $image->image;
-            } else {
-                $this->resize($image);
-            }
-        } else {
-            if (!$image->width && !$image->height) {
-                $image->src = $image->defaultWebDir . $image->defaultImage;
-                $image->rootSrc = $image->defaultDir . $image->defaultImage;
-            } else {
-                $this->resizeDefault($image);
-            }
-        }
-        $image->appendTimestamp();
-        return $image;
-    }
-
-    /**
-     * @param array $imageConfig
      * @return string
      * @throws \yii\base\Exception
      */
@@ -155,24 +117,7 @@ class Display extends \yii\base\Component
     }
 
     /**
-     * @param array $imageConfig
-     * @return string
-     */
-    public function showImage($imageConfig = [])
-    {
-        $image = $this->getImage($imageConfig);
-        if ($image->absolutePath === true) {
-            $src = Yii::$app->getRequest()->getHostInfo() . $image->src;
-        } else if(is_string($image->absolutePath)) {
-            $src = $image->absolutePath . $image->src;
-        } else {
-            $src = $image->src;
-        }
-        return Html::img($src, $image->options);
-    }
-
-    /**
-     * @param $image \pavlinter\display2\Image
+     * @param $image \pavlinter\display2\objects\Image
      * @return bool
      */
     public function resize($image)
@@ -249,7 +194,7 @@ class Display extends \yii\base\Component
     }
 
     /**
-     * @param $image \pavlinter\display2\Image
+     * @param $image \pavlinter\display2\objects\Image
      * @return bool
      */
     public function resizeDefault($image)
@@ -316,7 +261,7 @@ class Display extends \yii\base\Component
     }
 
     /**
-     * @param $image \pavlinter\display2\Image
+     * @param $image \pavlinter\display2\objects\Image
      * @param $originalImage
      * @return mixed
      */
@@ -337,7 +282,7 @@ class Display extends \yii\base\Component
 
 
     /**
-     * @param $image \pavlinter\display2\Image
+     * @param $image \pavlinter\display2\objects\Image
      * @param $originalImage
      * @return mixed
      */
@@ -738,6 +683,17 @@ class Display extends \yii\base\Component
             return true;
         }
         return false;
+    }
+
+    /**
+     * @return \pavlinter\display2\Module
+     */
+    public function getDisplayModule()
+    {
+        if ($this->_displayModule === null) {
+            $this->_displayModule = Yii::$app->getModule($this->moduleId);
+        }
+        return $this->_displayModule;
     }
 
 }
