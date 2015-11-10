@@ -16,6 +16,8 @@ use yii\base\InvalidConfigException;
  */
 class Module extends \yii\base\Module
 {
+    public $componentId = 'display';
+
     /**
      * @var array|\Closure
      * example:
@@ -54,7 +56,7 @@ class Module extends \yii\base\Module
      * @var string the default image class name when calling [[image()]] to create a new image.
      * @see imageConfig
      */
-    public $imageClass = 'pavlinter\display2\Image';
+    public $imageClass = 'pavlinter\display2\objects\Image';
 
     /**
      * @var array|\Closure
@@ -65,11 +67,6 @@ class Module extends \yii\base\Module
      * @var integer max image resize for one request
      */
     public $maxResize = 20;
-    /**
-     * @var integer already resized
-     */
-    private $_maxResized = 0;
-
 
     /**
      * @throws InvalidConfigException

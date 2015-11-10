@@ -14,6 +14,7 @@ use yii\base\InvalidConfigException;
 use yii\helpers\ArrayHelper;
 use yii\helpers\FileHelper;
 use yii\helpers\Html;
+use yii\helpers\Url;
 
 /**
  * Class Display
@@ -24,7 +25,12 @@ class Display extends \yii\base\Component
 
     public $moduleId = 'display2';
 
-    public $_displayModule;
+    private $_displayModule;
+
+    /**
+     * @var integer already resized
+     */
+    private $_maxResized = 0;
 
     /**
      * @throws InvalidConfigException
@@ -33,6 +39,31 @@ class Display extends \yii\base\Component
     {
         parent::init();
     }
+
+
+    /**
+     * @param array $params
+     *
+     *
+     *
+     * @return string
+     */
+    public function createUrl($params = [])
+    {
+        $url = $this->urlTo(['//' . $this->moduleId . '/image/crop']);
+        if (strpos($url, '?') === false) {
+            $url .= '?';
+        }
+        $url .= http_build_query($params);
+        return $url;
+    }
+
+    public function urlTo($url = '', $scheme = false)
+    {
+        return Url::to($url, $scheme);
+    }
+
+
 
     /**
      * @param array $imageConfig
@@ -85,12 +116,12 @@ class Display extends \yii\base\Component
      */
     public function createImage($config = [])
     {
-        $imageConfig = $this->imageConfig;
+        $imageConfig = $this->displayModule->imageConfig;
         if ($imageConfig instanceof \Closure) {
             $imageConfig = call_user_func($imageConfig, $config);
         }
         if (!isset($imageConfig['class'])) {
-            $imageConfig['class'] = $this->imageClass;
+            $imageConfig['class'] = $this->displayModule->imageClass;
         }
 
         $config = ArrayHelper::merge($imageConfig, $config);
@@ -98,11 +129,10 @@ class Display extends \yii\base\Component
         if (!isset($config['category'])) {
             throw new InvalidConfigException('The "category" property must be set.');
         }
-        if (!isset($this->categories[$config['category']])) {
-            throw new InvalidConfigException('Set category in Display configuration!');
+        if (!isset($this->displayModule->categories[$config['category']])) {
+            throw new InvalidConfigException('Set category in Module configuration!');
         }
-
-        return Yii::createObject(ArrayHelper::merge($this->categories[$config['category']], $config));
+        return Yii::createObject(ArrayHelper::merge($this->displayModule->categories[$config['category']], $config));
     }
 
     /**
@@ -145,24 +175,24 @@ class Display extends \yii\base\Component
             $image->options['alt'] = $imageName;
         }
 
-        $imagesDir      = Yii::getAlias(rtrim($this->cacheDir, '/')) . '/' . $image->category . '/' . $image->getIdRowPath();
-        $imagesWebDir   = Yii::getAlias(rtrim($this->cacheWebDir, '/')) . '/' . $image->category  . '/' . $image->getIdRowPath();
+        $imagesDir      = Yii::getAlias(rtrim($this->displayModule->cacheDir, '/')) . '/' . $image->category . '/' . $image->getIdRowPath();
+        $imagesWebDir   = Yii::getAlias(rtrim($this->displayModule->cacheWebDir, '/')) . '/' . $image->category  . '/' . $image->getIdRowPath();
         FileHelper::createDirectory($imagesDir);
 
         $exists = file_exists($imagesDir . $image->sizeDirectory. $dir . $imageName);
-        if ($exists && $this->cacheSeconds !== null) {
+        if ($exists && $this->displayModule->cacheSeconds !== null) {
             $cacheFiletime = filemtime($imagesDir . $image->sizeDirectory. $dir . $imageName);
-            if ($this->cacheSeconds === 'auto') {
+            if ($this->displayModule->cacheSeconds === 'auto') {
                 $filemtime = filemtime($filePath);
                 if ($filemtime !== $cacheFiletime) {
                     $exists = false;
                 }
             } else {
-                $exists = time() <= $this->cacheSeconds + $cacheFiletime;
+                $exists = time() <= $this->displayModule->cacheSeconds + $cacheFiletime;
             }
         }
         if (!$exists) {
-            if ($this->_maxResized >= $this->maxResize) {
+            if ($this->_maxResized >= $this->displayModule->maxResize) {
                 $image->src = $image->imagesWebDir . $image->getIdRowPath() . $image->image;
                 $image->rootSrc = $image->imagesDir . $image->getIdRowPath() . $image->image;
                 return false;
@@ -182,7 +212,7 @@ class Display extends \yii\base\Component
             $newImage = $imagesDir . $image->sizeDirectory . $dir . $imageName;
             $img->save($newImage);
 
-            if ($this->cacheSeconds === 'auto') {
+            if ($this->displayModule->cacheSeconds === 'auto') {
                 $filemtime = filemtime($filePath);
                 touch($newImage, $filemtime);
             }
@@ -206,8 +236,8 @@ class Display extends \yii\base\Component
         } else {
             $defCat = $image->category . '/' . $image->defaultCategory . '/';
         }
-        $defaultDir      = Yii::getAlias(rtrim($this->cacheDir, '/')) . '/' . $defCat;
-        $defaultWebDir   = Yii::getAlias(rtrim($this->cacheWebDir, '/')) . '/' . $defCat;
+        $defaultDir      = Yii::getAlias(rtrim($this->displayModule->cacheDir, '/')) . '/' . $defCat;
+        $defaultWebDir   = Yii::getAlias(rtrim($this->displayModule->cacheWebDir, '/')) . '/' . $defCat;
         FileHelper::createDirectory($defaultDir);
 
         if (!isset($image->options['alt'])) {
@@ -215,21 +245,21 @@ class Display extends \yii\base\Component
         }
 
         $exists = file_exists($defaultDir . $image->sizeDirectory . $image->defaultImage);
-        if ($exists && $this->cacheSeconds !== null) {
+        if ($exists && $this->displayModule->cacheSeconds !== null) {
             $cacheFiletime = filemtime($defaultDir . $image->sizeDirectory . $image->defaultImage);
-            if ($this->cacheSeconds === 'auto') {
+            if ($this->displayModule->cacheSeconds === 'auto') {
                 $filemtime = filemtime($filePath);
                 if ($filemtime !== $cacheFiletime) {
                     $exists = false;
                 }
             } else {
-                $exists = time() <= $this->cacheSeconds + $cacheFiletime;
+                $exists = time() <= $this->displayModule->cacheSeconds + $cacheFiletime;
             }
         }
 
         if (!$exists) {
 
-            if ($this->_maxResized >= $this->maxResize) {
+            if ($this->_maxResized >= $this->displayModule->maxResize) {
                 $image->src = $defaultWebDir . $image->defaultImage;
                 $image->rootSrc = $defaultDir . $image->defaultImage;
                 return false;
@@ -250,7 +280,7 @@ class Display extends \yii\base\Component
             $newImage = $defaultDir . $image->sizeDirectory . $image->defaultImage;
 
             $img->save($newImage);
-            if ($this->cacheSeconds === 'auto') {
+            if ($this->displayModule->cacheSeconds === 'auto') {
                 $filemtime = filemtime($filePath);
                 touch($newImage, $filemtime);
             }
@@ -383,17 +413,6 @@ class Display extends \yii\base\Component
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
     /**
      * @param $category
      * @param array $options
@@ -402,10 +421,10 @@ class Display extends \yii\base\Component
      */
     public function getFiles($category, $options = [])
     {
-        if (!isset($this->categories[$category])) {
+        if (!isset($this->displayModule->categories[$category])) {
             return false;
         }
-        $config = $this->categories[$category];
+        $config = $this->displayModule->categories[$category];
         if (!isset($config['imagesDir'])) {
             throw new InvalidConfigException('The "imagesDir" property must be set for "' . $category . '".');
         }
@@ -421,8 +440,10 @@ class Display extends \yii\base\Component
             'keyCallback' => function($data){
                 return basename($data['dirName']);
             },
-            'return' => false, // or function($data){ return $data; } required return string|array and image key
-            'minImages' => 0
+            'return' => function($data){
+                return $data;
+            }, //required return string|array and image key
+            'minImages' => 1
         ], $options);
 
 
@@ -527,7 +548,7 @@ class Display extends \yii\base\Component
      * @return array|bool
      * @throws InvalidConfigException
      */
-    public static function getOriginalImages($id_row, $category, $options = [])
+    public function getOriginalImages($id_row, $category, $options = [])
     {
         if ($id_row) {
             $options['id_row'] = $id_row;
@@ -536,7 +557,7 @@ class Display extends \yii\base\Component
             $options['dir'] = trim($options['dir'], '/');
         }
         if (!isset($options['only'])) {
-            $extensions = static::supported();
+            $extensions = $this->supported();
             foreach ($extensions as $ext) {
                 $options['only'][] = '*.' . $ext;
             }
@@ -545,7 +566,7 @@ class Display extends \yii\base\Component
             }
         }
 
-        $files = static::getFiles($category, $options);
+        $files = $this->getFiles($category, $options);
 
         if (!is_array($files)) {
             return [];
@@ -575,14 +596,11 @@ class Display extends \yii\base\Component
      * @param array $options
      * @return array
      */
-    public static function getFileImages($id_row, $category, $widget = [], $options = [])
+    public function getFileImages($id_row, $category, $widget = [], $options = [])
     {
         $options['isDisplayImagePath'] = true;
-        $images     = static::getOriginalImages($id_row, $category, $options);
+        $images     = $this->getOriginalImages($id_row, $category, $options);
         $displayImages = [];
-        if (!isset($widget['returnSrc'])) {
-            $widget['returnSrc'] = true;
-        }
         $widget['category'] = $category;
         if ($id_row) {
             $widget['id_row'] = $id_row;
@@ -590,7 +608,7 @@ class Display extends \yii\base\Component
         foreach ($images as $k => $image) {
             if (is_array($image)) {
                 $widget['image'] = $image['image'];
-                $image['display'] = DisplayImage::widget($widget);
+                $image['display'] = $this->getImage($widget)->src;
                 if ($image['image'] === null) {
                     $image['image'] = $image['display'];
                 }
@@ -601,7 +619,7 @@ class Display extends \yii\base\Component
                 $displayImages[$k] = $image;
             } else {
                 $widget['image'] = $image;
-                $displayImages[$k] = DisplayImage::widget($widget);
+                $displayImages[$k] = $this->getImage($widget)->src;
             }
         }
         return $displayImages;
