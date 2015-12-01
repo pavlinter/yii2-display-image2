@@ -51,8 +51,8 @@ Configuration
   ],
 ],
 ```
-Usage
------
+Crop with url
+-------------------
 ```php
 $images =  Yii::$app->display->getFileImgs(1, 'items', [
   'width' => 100,
@@ -96,7 +96,7 @@ echo Yii::$app->display->showImg([
 ```
 
 Crop now
---------
+-------------------
 
 ```php
 echo Yii::$app->display->showCropImage([ //subfolders image
