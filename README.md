@@ -21,7 +21,6 @@ to the require section of your `composer.json` file.
 
 Configuration
 -------------
-* Update config file
 ```php
 'modules' => [
   'display2'=> [
