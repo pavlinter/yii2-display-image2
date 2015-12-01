@@ -1,7 +1,7 @@
 {
     "name": "pavlinter/yii2-display-image2",
     "description": "Yii2: Auto resize image",
-    "keywords": ["yii2", "displayimage", "display-image2","display", "image", "resize"],
+    "keywords": ["yii2", "displayimage", "display-image2", "display", "image", "resize", "crop", "auto crop", "auto resize"],
     "type": "yii2-extension",
     "license": "BSD 3-Clause",
     "support": {
