@@ -9,6 +9,7 @@
 namespace pavlinter\display2\components;
 
 use Imagine\Image\Box;
+use pavlinter\display2\DisplayAsset;
 use Yii;
 use yii\base\InvalidConfigException;
 use yii\helpers\ArrayHelper;
@@ -17,6 +18,75 @@ use yii\helpers\Html;
 use yii\helpers\Url;
 
 /**
+ * //config
+ *  'modules' => [
+ *      'display2'=> [
+ *          'class'=>'pavlinter\display2\Module',
+ *          'categories' => [
+ *              'all' => [
+ *                  'imagesWebDir' => '@web/display-images/images',
+ *                  'imagesDir' => '@webroot/display-images/images',
+ *                  'defaultWebDir' => '@web/display-images/default',
+ *                  'defaultDir' => '@webroot/display-images/default',
+ *                  'mode' => \pavlinter\display2\objects\Image::MODE_OUTBOUND,
+ *              ],
+ *              'items' => [
+ *                  'generalDefaultDir' => false,
+ *                  'imagesWebDir' => '@web/display-images/items',
+ *                  'imagesDir' => '@webroot/display-images/items',
+ *                  'defaultWebDir' => '@web/display-images/default/items',
+ *                  'defaultDir' => '@webroot/display-images/default/items',
+ *                  'mode' => \pavlinter\display2\objects\Image::MODE_STATIC,
+ *              ],
+ *          ],
+ *     ],
+ *  ],
+ *  'components' => [
+ *      'display' => [
+ *          'class' => 'pavlinter\display2\components\Display',
+ *      ],
+ *  ],
+ *
+ *  $images =  Yii::$app->display->getFileImgs(1, 'items', [
+ *      'width' => 100,
+ *      'height' => 100,
+ *      'mode' => \pavlinter\display2\objects\Image::MODE_OUTBOUND,
+ *      'loadingOptions' => [],
+ *  ],[
+ *      'dir' => 'mainDir',
+ *      'minImages' => 2,
+ *      'maxImages' => 6,
+ *      'recursive' => false,
+ *  ]);
+ *   //return
+ *  [
+ *      1204270244_1.jpg' => [
+ *          'id_row' => 1
+ *          'key' => 0
+ *          'fullPath' => 'basePath..../web/display-images/items/1/1204270244_1.jpg'
+ *          'dirName' => '1204270244_1.jpg'
+ *          'imagesDir' => 'basePath..../web/display-images/items/1/'
+ *          'imagesWebDir' => '/display-images/items/1/'
+ *          'originImage' => '/display-images/items/1/1204270244_1.jpg'
+ *          'image' => '1204270244_1.jpg'
+ *          'display' => '/ru/display2/image/crop?width=100&height=100&mode=outbound&category=items&id_row=1&image=1204270244_1.jpg'
+ *          'displayLoading' => '<div class=\"display\" style=\"width: 100px; height: 100px;\"><img src=\"/ru/display2/image/crop?width=100&amp;height=100&amp;mode=outbound&amp;category=items&amp;id_row=1&amp;image=1204270244_1.jpg\" alt=\"1204270244_1\"><div class=\"display-loading\"></div></div>'
+ *      ]
+ *  ]
+ *  echo Yii::$app->display->createUrl([
+ *      'width' => 120,
+ *      'image' => '/subfolders/bg.jpg',
+ *      'category' => 'all',
+ *      'mode' => \pavlinter\display2\objects\Image::MODE_OUTBOUND,
+ *  ]);
+ *  echo Yii::$app->display->showImg([
+ *      'id_row' => 2,
+ *      'width' => 100,
+ *      'image' => 'd.jpeg',
+ *      'category' => 'items',
+ *      'mode' => \pavlinter\display2\objects\Image::MODE_STATIC,
+ *  ]);
+ * 
  * Class Display
  * @property \pavlinter\display2\Module $displayModule
  */
@@ -24,6 +94,15 @@ class Display extends \yii\base\Component
 {
 
     public $moduleId = 'display2';
+
+    public $view = 'view';
+
+    public $loadingOptions = [];
+
+    public $loadingBgSize = [
+        'width' => 64,
+        'height' => 64,
+    ];
 
     private $_displayModule;
 
@@ -58,6 +137,116 @@ class Display extends \yii\base\Component
         return $url;
     }
 
+    public function showImg($config, $options = [])
+    {
+        return $this->htmlImg($this->createUrl($config), $options);
+    }
+
+    public function htmlImg($src, $options = [])
+    {
+        return Html::img($src, $options);
+    }
+
+    public function loadingBoxImg($src, $imgOptions = [], $loadingOptions = [])
+    {
+        return $this->loadingBox($this->htmlImg($src, $imgOptions), $loadingOptions);
+    }
+
+    public function loadingBox($img, $loadingOptions = [])
+    {
+        DisplayAsset::register($this->getView());
+        $loadingOptions = ArrayHelper::merge($this->loadingOptions, $loadingOptions);
+        Html::addCssClass($loadingOptions, 'display');
+
+        $width = ArrayHelper::remove($loadingOptions, 'width', '100%');
+        $height = ArrayHelper::remove($loadingOptions, 'height', 400);
+
+        if (is_integer($width) && $width < $this->loadingBgSize['width']) {
+            Html::addCssClass($loadingOptions, 'bg-size');
+        } elseif (is_integer($height) && $height < $this->loadingBgSize['height']) {
+            Html::addCssClass($loadingOptions, 'bg-size');
+        }
+
+        if (is_integer($width)) {
+            $width .= 'px';
+        }
+        if (is_integer($height)) {
+            $height .= 'px';
+        }
+        Html::addCssStyle($loadingOptions, ['width' => $width, 'height' => $height]);
+        if ($width == '100%') {
+            Html::addCssStyle($loadingOptions, ['display' => 'block']);
+        }
+        $html  = Html::beginTag('div', $loadingOptions);
+        $html .= $img;
+        $html .= Html::tag('div', null ,['class' => 'display-loading']);
+        $html .= Html::endTag('div');
+
+        return $html;
+    }
+
+
+    public function getFileImgs($id_row, $category, $config = [], $options = [])
+    {
+        $options['isDisplayImagePath'] = true;
+        $images     = $this->getOriginalImages($id_row, $category, $options);
+        $displayImages = [];
+        $config['category'] = $category;
+
+        $loadingOptions = ArrayHelper::remove($config, 'loadingOptions', []);
+        $imgOptions = ArrayHelper::remove($config, 'imgOptions', []);
+
+        if ($id_row) {
+            $config['id_row'] = $id_row;
+        }
+        foreach ($images as $k => $image) {
+            if (is_array($image)) {
+                $config['image'] = $image['image'];
+
+                if (!isset($config['v'])) {
+                    $timestamp = @filemtime($image['fullPath']);
+                    if ($timestamp > 0) {
+                        $config['v'] = $timestamp;
+                    }
+                }
+                $image['display'] = $this->createUrl($config);
+                if (!isset($imgOptions['alt'])) {
+                    $imgOptions['alt'] = pathinfo($image['fullPath'], PATHINFO_FILENAME);
+                }
+
+                if (!isset($loadingOptions['height']) && isset($config['height'])) {
+                    $loadingOptions['height'] = $config['height'];
+                }
+                if (!isset($loadingOptions['width']) && isset($config['width'])) {
+                    $loadingOptions['width'] = $config['width'];
+                }
+                $image['displayLoading'] = $this->loadingBoxImg($image['display'], $imgOptions, $loadingOptions);
+                if ($image['image'] === null) {
+                    $image['image'] = $image['display'];
+                }
+                if ($image['originImage'] === null) {
+                    $image['originImage'] = $image['display'];
+                }
+
+                $displayImages[$k] = $image;
+            } else {
+                $config['image'] = $image;
+                $displayImages[$k] = $this->createUrl($config);
+            }
+        }
+        return $displayImages;
+    }
+
+    public function getFileImg($id_row, $category, $config = [], $options = [])
+    {
+        $options['maxImages'] = 1;
+        if (!isset($options['minImages'])) {
+            $options['minImages'] = 1;
+        }
+        $displayImages = $this->getCropFileImages($id_row, $category, $config, $options);
+        return reset($displayImages);
+    }
+
     public function urlTo($url = '', $scheme = false)
     {
         return Url::to($url, $scheme);
@@ -69,7 +258,7 @@ class Display extends \yii\base\Component
      * @param array $imageConfig
      * @return string
      */
-    public function showImage($imageConfig = [])
+    public function showCropImage($imageConfig = [])
     {
         $image = $this->getImage($imageConfig);
         if ($image->absolutePath === true) {
@@ -596,7 +785,7 @@ class Display extends \yii\base\Component
      * @param array $options
      * @return array
      */
-    public function getFileImages($id_row, $category, $widget = [], $options = [])
+    public function getCropFileImages($id_row, $category, $widget = [], $options = [])
     {
         $options['isDisplayImagePath'] = true;
         $images     = $this->getOriginalImages($id_row, $category, $options);
@@ -632,10 +821,10 @@ class Display extends \yii\base\Component
      * @param array $options
      * @return mixed
      */
-    public function getFileImage($id_row, $category, $widget = [], $options = [])
+    public function getCropFileImage($id_row, $category, $widget = [], $options = [])
     {
-        $images = static::getImages($id_row, $category, $widget, $options);
-
+        $options['maxImages'] = 1;
+        $images = $this->getCropFileImages($id_row, $category, $widget, $options);
         if (empty($images)) {
             return null;
         }
@@ -647,7 +836,7 @@ class Display extends \yii\base\Component
      * @param null $id_row
      * @return bool
      */
-    public function clear($category, $id_row = null)
+    /*public function clear($category, $id_row = null)
     {
         $globalConfig = static::getConfig();
         $categories = ArrayHelper::remove($globalConfig, 'config');
@@ -685,12 +874,12 @@ class Display extends \yii\base\Component
         FileHelper::removeDirectory($path);
         FileHelper::removeDirectory($defaultCacheDir);
         return true;
-    }
+    }*/
 
     /**
      * Clear all cache (Only for outer directory cache)
      */
-    public function clearCacheDir()
+    /*public function clearCacheDir()
     {
         $globalConfig = static::getConfig();
 
@@ -701,7 +890,7 @@ class Display extends \yii\base\Component
             return true;
         }
         return false;
-    }
+    }*/
 
     /**
      * @return \pavlinter\display2\Module
@@ -712,6 +901,11 @@ class Display extends \yii\base\Component
             $this->_displayModule = Yii::$app->getModule($this->moduleId);
         }
         return $this->_displayModule;
+    }
+
+    public function getView()
+    {
+        return Yii::$app->get($this->view);
     }
 
 }
