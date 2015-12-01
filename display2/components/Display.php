@@ -86,7 +86,7 @@ use yii\helpers\Url;
  *      'category' => 'items',
  *      'mode' => \pavlinter\display2\objects\Image::MODE_STATIC,
  *  ]);
- * 
+ *
  * Class Display
  * @property \pavlinter\display2\Module $displayModule
  */
@@ -201,6 +201,7 @@ class Display extends \yii\base\Component
         }
         foreach ($images as $k => $image) {
             if (is_array($image)) {
+                $image['alt'] = null;
                 $config['image'] = $image['image'];
 
                 if (!isset($config['v'])) {
@@ -211,16 +212,25 @@ class Display extends \yii\base\Component
                 }
                 $image['display'] = $this->createUrl($config);
                 if (!isset($imgOptions['alt'])) {
-                    $imgOptions['alt'] = pathinfo($image['fullPath'], PATHINFO_FILENAME);
+                    $image['alt'] = $imgOptions['alt'] = pathinfo($image['fullPath'], PATHINFO_FILENAME);
                 }
 
-                if (!isset($loadingOptions['height']) && isset($config['height'])) {
-                    $loadingOptions['height'] = $config['height'];
+                if ($loadingOptions === false) {
+                    $image['displayLoading'] = null;
+                } else {
+                    if (!isset($loadingOptions['height']) && isset($config['height'])) {
+                        $loadingOptions['height'] = $config['height'];
+                    }
+                    if (!isset($loadingOptions['width']) && isset($config['width'])) {
+                        $loadingOptions['width'] = $config['width'];
+                    }
+                    $image['displayLoading'] = $this->loadingBoxImg($image['display'], $imgOptions, $loadingOptions);
+
                 }
-                if (!isset($loadingOptions['width']) && isset($config['width'])) {
-                    $loadingOptions['width'] = $config['width'];
-                }
-                $image['displayLoading'] = $this->loadingBoxImg($image['display'], $imgOptions, $loadingOptions);
+
+
+
+
                 if ($image['image'] === null) {
                     $image['image'] = $image['display'];
                 }
