@@ -94,3 +94,36 @@ echo Yii::$app->display->showImg([
   'mode' => \pavlinter\display2\objects\Image::MODE_STATIC,
 ]);
 ```
+
+Crop now
+--------
+
+```php
+echo Yii::$app->display->showCropImage([ //subfolders image
+    'width' => 120,
+    'image' => '/subfolders/bg.jpg', // or subfolders/bg.jpg
+    'category' => 'all',
+]);
+
+echo Yii::$app->display->showCropImage([
+    'id_row' => 2,
+    'width' => 100,
+    'image' => 'd.jpeg',
+    'category' => 'items',
+]);
+
+echo Yii::$app->display->showCropImage([ //new name
+    'name' => 'newName',
+    'width' => 100,
+    'height' => 130,
+    'image' => '334.gif',
+    'category' => 'all',
+]);
+
+echo Yii::$app->display->showCropImage([ //return default Html::img from items category
+    'id_row' => 2,
+    'width' => 100,
+    'image' => 'rddddd',
+    'category' => 'items',
+]);
+```
