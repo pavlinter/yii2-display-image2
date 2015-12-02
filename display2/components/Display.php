@@ -112,19 +112,15 @@ class Display extends \yii\base\Component
     private $_maxResized = 0;
 
     /**
-     * @throws InvalidConfigException
+     *
      */
     public function init()
     {
         parent::init();
     }
 
-
     /**
      * @param array $params
-     *
-     *
-     *
      * @return string
      */
     public function createUrl($params = [])
@@ -137,21 +133,42 @@ class Display extends \yii\base\Component
         return $url;
     }
 
+    /**
+     * @param $config
+     * @param array $options
+     * @return string
+     */
     public function showImg($config, $options = [])
     {
         return $this->htmlImg($this->createUrl($config), $options);
     }
 
+    /**
+     * @param $src
+     * @param array $options
+     * @return string
+     */
     public function htmlImg($src, $options = [])
     {
         return Html::img($src, $options);
     }
 
+    /**
+     * @param $src
+     * @param array $imgOptions
+     * @param array $loadingOptions
+     * @return string
+     */
     public function loadingBoxImg($src, $imgOptions = [], $loadingOptions = [])
     {
         return $this->loadingBox($this->htmlImg($src, $imgOptions), $loadingOptions);
     }
 
+    /**
+     * @param $img
+     * @param array $loadingOptions
+     * @return string
+     */
     public function loadingBox($img, $loadingOptions = [])
     {
         DisplayAsset::register($this->getView());
@@ -185,11 +202,18 @@ class Display extends \yii\base\Component
         return $html;
     }
 
-
+    /**
+     * @param $id_row
+     * @param $category
+     * @param array $config
+     * @param array $options
+     * @return array
+     */
     public function getFileImgs($id_row, $category, $config = [], $options = [])
     {
         $options['isDisplayImagePath'] = true;
         $images     = $this->getOriginalImages($id_row, $category, $options);
+
         $displayImages = [];
         $config['category'] = $category;
 
@@ -202,7 +226,7 @@ class Display extends \yii\base\Component
         foreach ($images as $k => $image) {
             if (is_array($image)) {
                 $image['alt'] = null;
-                $config['image'] = $image['image'];
+                $config['image'] = $image['dirName'];
 
                 if (!isset($config['v'])) {
                     $timestamp = @filemtime($image['fullPath']);
@@ -228,9 +252,6 @@ class Display extends \yii\base\Component
 
                 }
 
-
-
-
                 if ($image['image'] === null) {
                     $image['image'] = $image['display'];
                 }
@@ -247,6 +268,13 @@ class Display extends \yii\base\Component
         return $displayImages;
     }
 
+    /**
+     * @param $id_row
+     * @param $category
+     * @param array $config
+     * @param array $options
+     * @return array
+     */
     public function getFileImg($id_row, $category, $config = [], $options = [])
     {
         $options['maxImages'] = 1;
@@ -257,12 +285,15 @@ class Display extends \yii\base\Component
         return reset($displayImages);
     }
 
+    /**
+     * @param string $url
+     * @param bool|false $scheme
+     * @return string
+     */
     public function urlTo($url = '', $scheme = false)
     {
         return Url::to($url, $scheme);
     }
-
-
 
     /**
      * @param array $imageConfig
@@ -509,7 +540,6 @@ class Display extends \yii\base\Component
         return \yii\imagine\Image::getImagine()->create($Box, $color)->paste($newImage, $point);
     }
 
-
     /**
      * @param $image \pavlinter\display2\objects\Image
      * @param $originalImage
@@ -554,8 +584,6 @@ class Display extends \yii\base\Component
         return \yii\imagine\Image::getImagine()->create($Box, $color)->paste($newImage, $point);
     }
 
-
-
     /**
      * @param $path
      * @return array|bool
@@ -568,7 +596,6 @@ class Display extends \yii\base\Component
         $ext = $this->getExtension($path);
         return $this->supported($ext);
     }
-
     /**
      * @param $path
      * @return string
@@ -577,7 +604,6 @@ class Display extends \yii\base\Component
     {
         return strtolower(pathinfo($path, PATHINFO_EXTENSION));
     }
-
     /**
      * @param $string
      * @return mixed|string
@@ -645,12 +671,9 @@ class Display extends \yii\base\Component
             'minImages' => 1
         ], $options);
 
-
-
         if ($options['return'] !== false && !($options['return'] instanceof \Closure)) {
             throw new InvalidConfigException('The "return" property must be Closure.');
         }
-
 
         $dir = ArrayHelper::remove($options, 'dir');
         $dir = $dir ? $dir . '/' : '';
@@ -671,7 +694,7 @@ class Display extends \yii\base\Component
                 if ($maxImages !== null && $k >= $maxImages) {
                     break;
                 }
-                $pathName = str_replace($imagesDir . $id_row, '', str_replace('\\', '', $image));
+                $pathName = trim(str_replace($imagesDir . $id_row, '', $image), '\\');
                 $data = [
                     'id_row' => (int)$id_row,
                     'key' => $k,
@@ -683,9 +706,9 @@ class Display extends \yii\base\Component
                 ];
                 $key = call_user_func($keyCallback, $data);
                 if ($options['return'] === false) {
-                    $resImages[$key] = $pathName;
+                    $resImages[$key] = basename($pathName);
                 } else {
-                    $data['image'] = $pathName;
+                    $data['image'] = basename($pathName);
                     $resImages[$key] = call_user_func($options['return'], $data);
                 }
             }
@@ -706,9 +729,9 @@ class Display extends \yii\base\Component
                 ];
                 $key = call_user_func($keyCallback, $data);
                 if ($options['return'] === false) {
-                    $resImages[$key] = $data['originImage'];
+                    $resImages[$key] = basename($data['originImage']);
                 } else {
-                    $data['image'] = $data['originImage'];
+                    $data['image'] = basename($data['originImage']);
                     $resImages[$key] = call_user_func($options['return'], $data);
                 }
             }
@@ -738,14 +761,14 @@ class Display extends \yii\base\Component
                 }
             }
         }
+
         return $resImages;
     }
     /**
      * @param $id_row
      * @param $category
      * @param array $options
-     * @return array|bool
-     * @throws InvalidConfigException
+     * @return array
      */
     public function getOriginalImages($id_row, $category, $options = [])
     {
@@ -764,9 +787,7 @@ class Display extends \yii\base\Component
                 $options['caseSensitive'] = false;
             }
         }
-
         $files = $this->getFiles($category, $options);
-
         if (!is_array($files)) {
             return [];
         }
@@ -777,7 +798,7 @@ class Display extends \yii\base\Component
      * @param $id_row
      * @param $category
      * @param array $options
-     * @return mixed|null
+     * @return array
      */
     public static function getOriginalImage($id_row, $category, $options = [])
     {
@@ -804,17 +825,43 @@ class Display extends \yii\base\Component
         if ($id_row) {
             $widget['id_row'] = $id_row;
         }
+
+        $loadingOptions = ArrayHelper::remove($options, 'loadingOptions', []);
+        $imgOptions = ArrayHelper::remove($options, 'imgOptions', []);
+
         foreach ($images as $k => $image) {
+
             if (is_array($image)) {
-                $widget['image'] = $image['image'];
-                $image['display'] = $this->getImage($widget)->src;
+                $image['alt'] = null;
+                $widget['image'] = $image['dirName'];
+                $imageObject = $this->getImage($widget);
+                if ($imageObject->name !== null) {
+                    $image['alt'] = $imgOptions['alt'] = $imageObject->name;
+                }
+                $image['display'] = $imageObject->src;
+
+                if (!isset($imgOptions['alt']) && $imageObject->name === null) {
+                    $image['alt'] = $imgOptions['alt'] = pathinfo($image['fullPath'], PATHINFO_FILENAME);
+                }
+
+                if ($loadingOptions === false) {
+                    $image['displayLoading'] = null;
+                } else {
+                    if (!isset($loadingOptions['height']) && isset($options['height'])) {
+                        $loadingOptions['height'] = $options['height'];
+                    }
+                    if (!isset($loadingOptions['width']) && isset($options['width'])) {
+                        $loadingOptions['width'] = $options['width'];
+                    }
+                    $image['displayLoading'] = $this->loadingBoxImg($image['display'], $imgOptions, $loadingOptions);
+                }
+
                 if ($image['image'] === null) {
                     $image['image'] = $image['display'];
                 }
                 if ($image['originImage'] === null) {
                     $image['originImage'] = $image['display'];
                 }
-
                 $displayImages[$k] = $image;
             } else {
                 $widget['image'] = $image;
@@ -829,7 +876,7 @@ class Display extends \yii\base\Component
      * @param $category
      * @param array $widget
      * @param array $options
-     * @return mixed
+     * @return array
      */
     public function getCropFileImage($id_row, $category, $widget = [], $options = [])
     {
@@ -913,6 +960,9 @@ class Display extends \yii\base\Component
         return $this->_displayModule;
     }
 
+    /**
+     * @return \yii\web\View
+     */
     public function getView()
     {
         return Yii::$app->get($this->view);
