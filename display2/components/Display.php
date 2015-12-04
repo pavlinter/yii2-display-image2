@@ -668,7 +668,7 @@ class Display extends \yii\base\Component
             'return' => function($data){
                 return $data;
             }, //required return string|array and image key
-            'minImages' => 1
+            'minImages' => 0
         ], $options);
 
         if ($options['return'] !== false && !($options['return'] instanceof \Closure)) {
