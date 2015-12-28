@@ -73,6 +73,40 @@ use yii\helpers\Url;
  *          'displayLoading' => '<div class=\"display\" style=\"width: 100px; height: 100px;\"><img src=\"/ru/display2/image/crop?width=100&amp;height=100&amp;mode=outbound&amp;category=items&amp;id_row=1&amp;image=1204270244_1.jpg\" alt=\"1204270244_1\"><div class=\"display-loading\"></div></div>'
  *      ]
  *  ]
+ *
+ *  $image =  Yii::$app->display->getFileImg(1, 'items', [
+ *      'width' => 100,
+ *      'height' => 100,
+ *      'mode' => \pavlinter\display2\objects\Image::MODE_OUTBOUND,
+ *      'loadingOptions' => [],
+ *  ]);
+ *  //return
+ *  [
+ *      'id_row' => 1
+ *      'key' => 0
+ *      'fullPath' => 'basePath..../web/display-images/items/1/1204270244_1.jpg'
+ *      'dirName' => '1204270244_1.jpg'
+ *      'imagesDir' => 'basePath..../web/display-images/items/1/'
+ *      'imagesWebDir' => '/display-images/items/1/'
+ *      'originImage' => '/display-images/items/1/1204270244_1.jpg'
+ *      'image' => '1204270244_1.jpg'
+ *      'display' => '/ru/display2/image/crop?width=100&height=100&mode=outbound&category=items&id_row=1&image=1204270244_1.jpg'
+ *      'displayLoading' => '<div class=\"display\" style=\"width: 100px; height: 100px;\"><img src=\"/ru/display2/image/crop?width=100&amp;height=100&amp;mode=outbound&amp;category=items&amp;id_row=1&amp;image=1204270244_1.jpg\" alt=\"1204270244_1\"><div class=\"display-loading\"></div></div>'
+ *  ]
+ *  echo Yii::$app->display->showCropImage([ //return default Html::img from items category
+ *      'id_row' => 2,
+ *      'width' => 100,
+ *      'name' => 'newName',
+ *      'image' => '1.jpeg',
+ *      'category' => 'items',
+ *  ]);
+ *
+ *  echo Yii::$app->display->showCropImage([ //return original Html::img
+ *      'image' => '1.jpeg',
+ *      'category' => 'all',
+ *  ]);
+ *
+ *
  *  echo Yii::$app->display->createUrl([
  *      'width' => 120,
  *      'image' => '/subfolders/bg.jpg',
@@ -273,7 +307,7 @@ class Display extends \yii\base\Component
      * @param $category
      * @param array $config
      * @param array $options
-     * @return array
+     * @return mixed|null
      */
     public function getFileImg($id_row, $category, $config = [], $options = [])
     {
@@ -281,8 +315,11 @@ class Display extends \yii\base\Component
         if (!isset($options['minImages'])) {
             $options['minImages'] = 1;
         }
-        $displayImages = $this->getCropFileImages($id_row, $category, $config, $options);
-        return reset($displayImages);
+        $displayImages = $this->getFileImgs($id_row, $category, $config, $options);
+        if ($displayImages) {
+            return reset($displayImages);
+        }
+        return null;
     }
 
     /**
