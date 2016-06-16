@@ -133,16 +133,16 @@ class Image extends \yii\base\Object
         parent::init();
 
         if (empty($this->imagesWebDir)) {
-            throw new InvalidConfigException('The "imagesWebDir" property must be set for "' . $this->category . '".');
+            throw new InvalidConfigException('The "imagesWebDir" property must be set for "' . $this->imagesWebDir . '".');
         }
         if (empty($this->imagesDir)) {
-            throw new InvalidConfigException('The "imagesDir" property must be set for "' . $this->category . '".');
+            throw new InvalidConfigException('The "imagesDir" property must be set for "' . $this->imagesDir . '".');
         }
         if (empty($this->defaultWebDir)) {
-            throw new InvalidConfigException('The "defaultWebDir" property must be set for "' . $this->category . '".');
+            throw new InvalidConfigException('The "defaultWebDir" property must be set for "' . $this->defaultWebDir . '".');
         }
         if (empty($this->defaultDir)) {
-            throw new InvalidConfigException('The "defaultDir" property must be set for "' . $this->category . '".');
+            throw new InvalidConfigException('The "defaultDir" property must be set for "' . $this->defaultDir . '".');
         }
 
         if ($this->resize !== null && !($this->resize instanceof \Closure)) {
