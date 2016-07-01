@@ -8,8 +8,9 @@
 
 namespace pavlinter\display2\components;
 
-use Imagine\Image\Box;
 use pavlinter\display2\DisplayAsset;
+use pavlinter\display2\objects\Image;
+use pavlinter\display2\objects\ResizeModeInterface;
 use Yii;
 use yii\base\InvalidConfigException;
 use yii\helpers\ArrayHelper;
@@ -44,6 +45,18 @@ use yii\helpers\Url;
  *  'components' => [
  *      'display' => [
  *          'class' => 'pavlinter\display2\components\Display',
+ *          'resizeModes' => [
+ *             'ownResizeMode' => 'pavlinter\display2\objects\ResizeMode',
+ *             'ownResizeModeParams' => [
+ *                  'class' => 'pavlinter\display2\objects\ResizeMode',
+ *              ],
+ *             'ownResizeModeFunc' => function ($image, $originalImage) {
+ *                  @var $this \pavlinter\display2\components\Display
+ *                  @var $image \pavlinter\display2\objects\Image
+ *                  @var $originalImage \Imagine\Gd\Image
+ *                  return $originalImage->thumbnail(new \Imagine\Image\Box($image->width, $image->height), \pavlinter\display2\objects\Image::MODE_OUTBOUND);
+ *             }
+ *          ],
  *      ],
  *  ],
  *
@@ -138,6 +151,15 @@ class Display extends \yii\base\Component
         'height' => 64,
     ];
 
+    public $resizeModes = [];
+
+    private $_defaultResizeModes = [
+        Image::MODE_OUTBOUND => 'pavlinter\display2\objects\ResizeMode',
+        Image::MODE_INSET => 'pavlinter\display2\objects\ResizeMode',
+        Image::MODE_STATIC => 'pavlinter\display2\objects\ResizeModeStatic',
+        Image::MODE_MIN => 'pavlinter\display2\objects\ResizeModeMin',
+    ];
+
     private $_displayModule;
 
     /**
@@ -150,6 +172,7 @@ class Display extends \yii\base\Component
      */
     public function init()
     {
+        $this->resizeModes = ArrayHelper::merge($this->_defaultResizeModes, $this->resizeModes);
         parent::init();
     }
 
@@ -466,15 +489,7 @@ class Display extends \yii\base\Component
             }
             $this->_maxResized++;
 
-            if ($image->resize instanceof \Closure) {
-                $img = call_user_func($image->resize, $image, $img);
-            } elseif ($image->mode === $image::MODE_STATIC) {
-                $img = $this->resizeStatic($image, $img);
-            } elseif ($image->mode === $image::MODE_MIN) {
-                $img = $this->resizeMin($image, $img);
-            } else {
-                $img = $img->thumbnail(new Box($image->width, $image->height), $image->mode);
-            }
+            $img = $this->callResizeMode($image, $img);
             FileHelper::createDirectory($imagesDir . $image->sizeDirectory . $dir);
             $newImage = $imagesDir . $image->sizeDirectory . $dir . $imageName;
             $img->save($newImage);
@@ -535,15 +550,8 @@ class Display extends \yii\base\Component
 
             FileHelper::createDirectory($defaultDir . $image->sizeDirectory);
             $img = \yii\imagine\Image::getImagine()->open($filePath);
-            if ($image->resize instanceof \Closure) {
-                $img = call_user_func($image->resize, $image, $img);
-            } elseif ($image->mode === $image::MODE_STATIC) {
-                $img = $this->resizeStatic($image, $img);
-            } elseif ($image->mode === $image::MODE_MIN) {
-                $img = $this->resizeMin($image, $img);
-            } else {
-                $img = $img->thumbnail(new Box($image->width, $image->height), $image->mode);
-            }
+            $img = $this->callResizeMode($image, $img);
+
             $newImage = $defaultDir . $image->sizeDirectory . $image->defaultImage;
 
             $img->save($newImage);
@@ -557,68 +565,32 @@ class Display extends \yii\base\Component
         return true;
     }
 
-    /**
-     * @param $image \pavlinter\display2\objects\Image
-     * @param $originalImage
-     * @return mixed
-     */
-    public function resizeStatic($image,$originalImage)
-    {
-        $Box = new Box($image->width, $image->height);
-        $newImage = $originalImage->thumbnail($Box);
-        $boxNew = $newImage->getSize();
-
-        $x = ($Box->getWidth() - $boxNew->getWidth())/2;
-        $y = ($Box->getHeight() - $boxNew->getHeight())/2;
-
-        $point = new \Imagine\Image\Point($x,$y);
-        $color = new \Imagine\Image\Color('#' . $image->bgColor, $image->bgAlpha);
-
-        return \yii\imagine\Image::getImagine()->create($Box, $color)->paste($newImage, $point);
-    }
 
     /**
      * @param $image \pavlinter\display2\objects\Image
-     * @param $originalImage
+     * @param $originalImage \Imagine\Gd\Image
      * @return mixed
+     * @throws InvalidConfigException
      */
-    public function resizeMin($image,$originalImage)
+    public function callResizeMode($image, $originalImage)
     {
-        /* @var $originalImage \Imagine\Imagick\Image */
-        /* @var $size \Imagine\Image\Box */
-        $size = $originalImage->getSize();
-        if ($image->width) {
-            if ($size->getWidth() >= $image->width) {
-                $divider = $size->getWidth() / $image->width;
+        if (isset($this->resizeModes[$image->mode])) {
+            $mode = $this->resizeModes[$image->mode];
+
+            if($mode instanceof \Closure) {
+                return call_user_func($mode, $image, $originalImage);
+            }else if(is_string($mode) || is_array($mode)){
+                $resizeMode = Yii::createObject($mode);
+                if (!$resizeMode instanceof ResizeModeInterface) {
+                    throw new InvalidConfigException('ResizeMode class must implement ResizeModeInterface.');
+                }
+                return $resizeMode->resize($image, $originalImage);
             } else {
-                $divider = $image->width / $size->getWidth();
+                throw new InvalidConfigException('The "' . $image->mode . '" property must be Closure or ResizeModeInterface');
             }
-            $h = $size->getHeight() / $divider;
-            $w  = $image->width;
-        } else if ($image->height) {
-            if ($size->getHeight() >= $image->height) {
-                $divider = $size->getHeight() / $image->height;
-            } else {
-                $divider = $image->height / $size->getHeight();
-            }
-            $w = $size->getWidth() / $divider;
-            $h = $image->height;
         } else {
-            $w = $size->getWidth();
-            $h = $size->getHeight();
+            throw new InvalidConfigException('The "' . $image->mode . '" mode not exist.');
         }
-
-        $Box = new Box($w, $h);
-        $newImage = $originalImage->thumbnail($Box);
-        $boxNew = $newImage->getSize();
-
-        $x = ($Box->getWidth() - $boxNew->getWidth())/2;
-        $y = ($Box->getHeight() - $boxNew->getHeight())/2;
-
-        $point = new \Imagine\Image\Point($x, $y);
-        $color = new \Imagine\Image\Color('#' . $image->bgColor, $image->bgAlpha);
-
-        return \yii\imagine\Image::getImagine()->create($Box, $color)->paste($newImage, $point);
     }
 
     /**

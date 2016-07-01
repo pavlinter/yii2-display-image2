@@ -46,7 +46,19 @@ Configuration
 ],
 'components' => [
   'display' => [
-      'class' => 'pavlinter\display2\components\Display',
+    'class' => 'pavlinter\display2\components\Display',
+    'resizeModes' => [
+        'ownResizeMode' => 'pavlinter\display2\objects\ResizeMode',
+        'ownResizeModeParams' => [
+            'class' => 'pavlinter\display2\objects\ResizeMode',
+        ],
+        'ownResizeModeFunc' => function ($image, $originalImage) {
+            @var $this \pavlinter\display2\components\Display
+            @var $image \pavlinter\display2\objects\Image
+            @var $originalImage \Imagine\Gd\Image
+            return $originalImage->thumbnail(new \Imagine\Image\Box($image->width, $image->height), \pavlinter\display2\objects\Image::MODE_OUTBOUND);
+        }
+    ],
   ],
 ],
 ```
@@ -91,6 +103,14 @@ echo Yii::$app->display->showImg([
   'image' => 'd.jpeg',
   'category' => 'items',
   'mode' => \pavlinter\display2\objects\Image::MODE_STATIC,
+]);
+
+echo Yii::$app->display->showImg([
+  'id_row' => 2,
+  'width' => 100,
+  'image' => 'd.jpeg',
+  'category' => 'items',
+  'mode' => 'ownResizeMode',
 ]);
 ```
 
