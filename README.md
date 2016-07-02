@@ -53,9 +53,9 @@ Configuration
             'class' => 'pavlinter\display2\objects\ResizeMode',
         ],
         'ownResizeModeFunc' => function ($image, $originalImage) {
-            @var $this \pavlinter\display2\components\Display
-            @var $image \pavlinter\display2\objects\Image
-            @var $originalImage \Imagine\Gd\Image
+            /* @var $this \pavlinter\display2\components\Display */
+            /* @var $image \pavlinter\display2\objects\Image */
+            /* @var $originalImage \Imagine\Gd\Image */
             return $originalImage->thumbnail(new \Imagine\Image\Box($image->width, $image->height), \pavlinter\display2\objects\Image::MODE_OUTBOUND);
         }
     ],
@@ -65,6 +65,8 @@ Configuration
 Crop with url
 -------------------
 ```php
+//get all images from folder
+//where 1 is id number from database
 $images =  Yii::$app->display->getFileImgs(1, 'items', [
   'width' => 100,
   'height' => 100,
@@ -76,7 +78,7 @@ $images =  Yii::$app->display->getFileImgs(1, 'items', [
   'maxImages' => 6,
   'recursive' => false,
 ]);
-//return
+//return from /display-images/items/1/mainDir/
 [
   1204270244_1.jpg' => [
       'id_row' => 1
