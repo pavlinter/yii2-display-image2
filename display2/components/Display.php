@@ -106,6 +106,39 @@ use yii\helpers\Url;
  *      'display' => '/ru/display2/image/crop?width=100&height=100&mode=outbound&category=items&id_row=1&image=1204270244_1.jpg'
  *      'displayLoading' => '<div class=\"display\" style=\"width: 100px; height: 100px;\"><img src=\"/ru/display2/image/crop?width=100&amp;height=100&amp;mode=outbound&amp;category=items&amp;id_row=1&amp;image=1204270244_1.jpg\" alt=\"1204270244_1\"><div class=\"display-loading\"></div></div>'
  *  ]
+ *
+ *  $files =  Yii::$app->display->getRowFiles(1, 'items', [
+ *      'dir' => 'gallery',
+ *  ]);
+ *  //return
+ *  [
+ *      1204270244_1.jpg' => [
+ *          'id_row' => 1
+ *          'key' => 0
+ *          'fullPath' => 'basePath..../web/display-images/items/1/\\1.jpg'
+ *          'dirName' => '1.jpg'
+ *          'imagesDir' => 'basePath..../web/display-images/items/'
+ *          'imagesWebDir' => '/display-images/items/'
+ *          'originImage' => '/display-images/items/1/1.jpg'
+ *          'image' => '1.jpg'
+ *      ]
+ *  ]
+ *
+ *  $file = Yii::$app->display->getRowFile(1, 'items', [
+ *      'dir' => 'main',
+ *  ]);
+ *  //return
+ *  [
+ *      'id_row' => 1
+ *      'key' => 0
+ *      'fullPath' => 'basePath..../web/display-images/items/1/\\1.jpg'
+ *      'dirName' => '1.jpg'
+ *      'imagesDir' => 'basePath..../web/display-images/items/'
+ *      'imagesWebDir' => '/display-images/items/'
+ *      'originImage' => '/display-images/items/1/1.jpg'
+ *      'image' => '1.jpg'
+ *  ]
+ *
  *  echo Yii::$app->display->showCropImage([ //return default Html::img from items category
  *      'id_row' => 2,
  *      'width' => 100,
@@ -646,6 +679,35 @@ class Display extends \yii\base\Component
         return in_array($format, $formats);
     }
 
+    /**
+     * @param $id_row
+     * @param $category
+     * @param array $options
+     * @return array|bool
+     * @throws InvalidConfigException
+     */
+    public function getRowFile($id_row, $category, $options = [])
+    {
+        $options['maxImages'] = 1;
+        $files = $this->getRowFiles($id_row, $category, $options);
+        if ($files) {
+            return reset($files);
+        }
+        return null;
+    }
+
+    /**
+     * @param $id_row
+     * @param $category
+     * @param array $options
+     * @return array|bool
+     * @throws InvalidConfigException
+     */
+    public function getRowFiles($id_row, $category, $options = [])
+    {
+        $options['id_row'] = $id_row;
+        return $this->getFiles($category, $options);
+    }
 
     /**
      * @param $category
