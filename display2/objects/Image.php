@@ -73,10 +73,10 @@ class Image extends \yii\base\Object
 
     /**
      * @var integer the background transparent for [[DisplayImage::MODE_STATIC]] or [[DisplayImage::MODE_MIN]] or [[resize]]
-     * default 0 value (not transparent)
+     * default 100 value (not transparent)
      * range 0 - 100
      */
-    public $bgAlpha = 0;
+    public $bgAlpha = 100;
 
     /**
      * @var array html options

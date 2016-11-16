@@ -54,7 +54,8 @@ class ResizeModeMin extends \yii\base\Object implements ResizeModeInterface
         $y = ($Box->getHeight() - $boxNew->getHeight())/2;
 
         $point = new \Imagine\Image\Point($x, $y);
-        $color = new \Imagine\Image\Color('#' . $image->bgColor, $image->bgAlpha);
+        $palette = new \Imagine\Image\Palette\RGB();
+        $color = $palette->color($image->bgColor, $image->bgAlpha);
 
         return \yii\imagine\Image::getImagine()->create($Box, $color)->paste($newImage, $point);
     }
