@@ -24,6 +24,7 @@ class Image extends \yii\base\Object
     const MODE_OUTBOUND = ManipulatorInterface::THUMBNAIL_OUTBOUND;
     const MODE_STATIC   = 'static';
     const MODE_MIN = 'min';
+    const MODE_MIN_RESTRICT = 'min';
 
     /**
      * @var integer id from db
