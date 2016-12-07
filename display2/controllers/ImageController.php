@@ -2,7 +2,7 @@
 /**
  * @copyright Copyright &copy; Pavels Radajevs, 2015
  * @package yii2-display-image2
- * @version 0.2.0
+ * @version 0.3.0
  */
 
 namespace pavlinter\display2\controllers;
