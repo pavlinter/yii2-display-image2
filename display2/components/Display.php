@@ -3,7 +3,7 @@
 /**
  * @copyright Copyright &copy; Pavels Radajevs, 2015
  * @package yii2-display-image2
- * @version 0.3.0
+ * @version 0.3.1
  */
 
 namespace pavlinter\display2\components;
@@ -526,7 +526,7 @@ class Display extends \yii\base\Component
             $img = $this->callResizeMode($image, $img);
             FileHelper::createDirectory($imagesDir . $image->sizeDirectory . $dir);
             $newImage = $imagesDir . $image->sizeDirectory . $dir . $imageName;
-            $img->save($newImage);
+            $img->save($newImage, ['quality' => 100]);
 
             if ($this->displayModule->cacheSeconds === 'auto') {
                 $filemtime = filemtime($filePath);
@@ -588,7 +588,7 @@ class Display extends \yii\base\Component
 
             $newImage = $defaultDir . $image->sizeDirectory . $image->defaultImage;
 
-            $img->save($newImage);
+            $img->save($newImage, ['quality' => 100]);
             if ($this->displayModule->cacheSeconds === 'auto') {
                 $filemtime = filemtime($filePath);
                 touch($newImage, $filemtime);

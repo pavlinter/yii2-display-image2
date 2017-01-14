@@ -2,7 +2,7 @@
 /**
  * @copyright Copyright &copy; Pavels Radajevs, 2015
  * @package yii2-display-image2
- * @version 0.3.0
+ * @version 0.3.1
  */
 
 namespace pavlinter\display2\controllers;
@@ -39,7 +39,7 @@ class ImageController extends Controller
         Yii::$app->response->format = \yii\web\Response::FORMAT_RAW;
         $headers = Yii::$app->response->headers;
         $headers->add('Content-Type', 'image/jpeg');
-        $img->show('jpg');
+        $img->show('jpg', ['quality' => 100]);
         return;
 
     }
