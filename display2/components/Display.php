@@ -477,7 +477,6 @@ class Display extends \yii\base\Component
     public function resize($image)
     {
         $filePath   = $image->imagesDir . $image->getIdRowPath() . $image->image;
-        $img        = \yii\imagine\Image::getImagine()->open($filePath);
         $imageName  = $image->image;
         $basename   = basename($imageName);
         $dir        = '';
@@ -516,6 +515,7 @@ class Display extends \yii\base\Component
             }
         }
         if (!$exists) {
+            $img = \yii\imagine\Image::getImagine()->open($filePath);
             if ($this->_maxResized >= $this->displayModule->maxResize) {
                 $image->src = $image->imagesWebDir . $image->getIdRowPath() . $image->image;
                 $image->rootSrc = $image->imagesDir . $image->getIdRowPath() . $image->image;
