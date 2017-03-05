@@ -3,7 +3,7 @@
 /**
  * @copyright Copyright &copy; Pavels Radajevs, 2015
  * @package yii2-display-image2
- * @version 0.3.1
+ * @version 2.0.0
  */
 
 namespace pavlinter\display2\components;
@@ -959,67 +959,6 @@ class Display extends \yii\base\Component
         }
         return reset($images);
     }
-
-    /**
-     * @param $category
-     * @param null $id_row
-     * @return bool
-     */
-    /*public function clear($category, $id_row = null)
-    {
-        $globalConfig = static::getConfig();
-        $categories = ArrayHelper::remove($globalConfig, 'config');
-
-        if (!isset($categories[$category])) {
-            return false;
-        }
-        $innerCacheDir = ArrayHelper::remove($globalConfig, 'innerCacheDir');
-        $cacheDir = Yii::getAlias(rtrim(ArrayHelper::remove($globalConfig, 'cacheDir', static::CACHE_DIR), '/'));
-        $generalDefaultDir = ArrayHelper::remove($categories[$category], 'generalDefaultDir');
-        if ($generalDefaultDir === null) {
-            $generalDefaultDir = ArrayHelper::remove($globalConfig, 'generalDefaultDir', true);
-        }
-        $defaultCategory = ArrayHelper::remove($categories[$category], 'defaultCategory', static::DEFAULT_CATEGORY);
-        $imagesDir = Yii::getAlias(rtrim(ArrayHelper::remove($categories[$category], 'imagesDir'), '/'));
-        $defaultDir = Yii::getAlias(rtrim(ArrayHelper::remove($categories[$category], 'defaultDir'), '/'));
-
-        if ($id_row) {
-            $id_row = '/' . $id_row;
-        }
-        if ($innerCacheDir) {
-            if (empty($imagesDir)) {
-                return false;
-            }
-            $path = $imagesDir . $id_row . '/' . $innerCacheDir;
-            $defaultCacheDir = $defaultDir . '/' . $innerCacheDir. '/';
-        } else {
-            $path = $cacheDir . '/' . $category . $id_row;
-            if ($generalDefaultDir) {
-                $defaultCacheDir = $cacheDir . '/' .$defaultCategory . '/';
-            } else {
-                $defaultCacheDir = $cacheDir . '/' .$category . '/' . $defaultCategory . '/';
-            }
-        }
-        FileHelper::removeDirectory($path);
-        FileHelper::removeDirectory($defaultCacheDir);
-        return true;
-    }*/
-
-    /**
-     * Clear all cache (Only for outer directory cache)
-     */
-    /*public function clearCacheDir()
-    {
-        $globalConfig = static::getConfig();
-
-        $innerCacheDir = ArrayHelper::remove($globalConfig, 'innerCacheDir');
-        if (!$innerCacheDir) {
-            $cacheDir = Yii::getAlias(rtrim(ArrayHelper::remove($globalConfig, 'cacheDir', static::CACHE_DIR), '/'));
-            FileHelper::removeDirectory($cacheDir);
-            return true;
-        }
-        return false;
-    }*/
 
     /**
      * @return \pavlinter\display2\Module
