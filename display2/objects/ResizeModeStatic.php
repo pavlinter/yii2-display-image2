@@ -14,7 +14,7 @@ use Yii;
 /**
  * Class ResizeModeStatic
  */
-class ResizeModeStatic extends \yii\base\Object implements ResizeModeInterface
+class ResizeModeStatic extends \yii\base\BaseObject implements ResizeModeInterface
 {
     /**
      * @param $image \pavlinter\display2\objects\Image

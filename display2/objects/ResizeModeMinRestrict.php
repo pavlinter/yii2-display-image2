@@ -16,7 +16,7 @@ use yii\base\InvalidConfigException;
 /**
  * Class ResizeModeMin
  */
-class ResizeModeMinRestrict extends \yii\base\Object implements \pavlinter\display2\objects\ResizeModeInterface
+class ResizeModeMinRestrict extends \yii\base\BaseObject implements \pavlinter\display2\objects\ResizeModeInterface
 {
     /**
      * @param \pavlinter\display2\objects\Image $image

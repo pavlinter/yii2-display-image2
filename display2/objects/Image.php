@@ -18,7 +18,7 @@ use Imagine\Image\ManipulatorInterface;
  *
  * @property string originImage
  */
-class Image extends \yii\base\Object
+class Image extends \yii\base\BaseObject
 {
     const MODE_INSET    = ManipulatorInterface::THUMBNAIL_INSET;
     const MODE_OUTBOUND = ManipulatorInterface::THUMBNAIL_OUTBOUND;
