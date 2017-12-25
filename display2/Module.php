@@ -3,7 +3,7 @@
 /**
  * @copyright Copyright &copy; Pavels Radajevs, 2015
  * @package yii2-display-image2
- * @version 2.1.0
+ * @version 2.1.1
  */
 
 namespace pavlinter\display2;
@@ -16,7 +16,7 @@ use yii\base\InvalidConfigException;
  */
 class Module extends \yii\base\Module
 {
-    const VERSION = '2.1.0';
+    const VERSION = '2.1.1';
 
     public $componentId = 'display';
 
