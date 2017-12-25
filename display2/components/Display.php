@@ -196,10 +196,13 @@ class Display extends \yii\base\Component
 
     private $_displayModule;
 
+    private $_categories = [];
+
     /**
      * @var integer already resized
      */
     private $_maxResized = 0;
+
 
     /**
      *
@@ -453,10 +456,11 @@ class Display extends \yii\base\Component
         if (!isset($config['category'])) {
             throw new InvalidConfigException('The "category" property must be set.');
         }
-        if (!isset($this->displayModule->categories[$config['category']])) {
+        $moduleConfig = $this->getCategoryConfig($config['category']);
+        if ($moduleConfig === false) {
             throw new InvalidConfigException('Set category in Module configuration!');
         }
-        return Yii::createObject(ArrayHelper::merge($this->displayModule->categories[$config['category']], $config));
+        return Yii::createObject(ArrayHelper::merge($moduleConfig, $config));
     }
 
     /**
@@ -718,15 +722,15 @@ class Display extends \yii\base\Component
      */
     public function getFiles($category, $options = [])
     {
-        if (!isset($this->displayModule->categories[$category])) {
+        $config = $this->getCategoryConfig($category);
+        if ($config === false) {
             return false;
         }
-        $config = $this->displayModule->categories[$category];
         if (!isset($config['imagesDir'])) {
             throw new InvalidConfigException('The "imagesDir" property must be set for "' . $category . '".');
         }
-        $imagesDir      = Yii::getAlias($config['imagesDir']) . '/';
-        $imagesWebDir   = Yii::getAlias($config['imagesWebDir']) . '/';
+        $imagesDir      = $config['imagesDir'] . '/';
+        $imagesWebDir   = $config['imagesWebDir'] . '/';
 
         $options = ArrayHelper::merge([
             'recursive' => false,
@@ -969,6 +973,77 @@ class Display extends \yii\base\Component
             $this->_displayModule = Yii::$app->getModule($this->moduleId);
         }
         return $this->_displayModule;
+    }
+
+    /**
+     * @param $category
+     * @param $id
+     * @return bool
+     * @throws \yii\base\ErrorException
+     */
+    public function removeFileRow($category, $id)
+    {
+        $config = $this->getCategoryConfig($category);
+        if ($config !== false) {
+            $cacheDir = Yii::getAlias(rtrim($this->displayModule->cacheDir, '/')) . '/' . $category . '/' . $id;
+            $path = $config['imagesDir'] . '/' . $id;
+            \yii\helpers\FileHelper::removeDirectory($path);
+            \yii\helpers\FileHelper::removeDirectory($cacheDir);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @param $category
+     * @param $id
+     * @return bool
+     * @throws \yii\base\ErrorException
+     */
+    public function copyFileRow($fromCategory, $fromId, $toId, $toCat = null)
+    {
+        if ($toCat === null) {
+            $toCat = $fromCategory;
+        }
+
+        $fromConfig = $this->getCategoryConfig($fromCategory);
+        $toConfig = $this->getCategoryConfig($toCat);
+
+        if ($fromConfig !== false && $toConfig !== false) {
+            $from = $fromConfig['imagesDir'] . '/' . $fromId;
+            $to = $toConfig['imagesDir'] . '/' . $toId;
+            \yii\helpers\FileHelper::copyDirectory($from, $to);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @return false|array
+     */
+    public function getCategoryConfig($category)
+    {
+        if (isset($this->_categories[$category])) {
+            return $this->_categories[$category];
+        } elseif (isset($this->displayModule->categories[$category])){
+            $config = $this->displayModule->categories[$category];
+            if (isset($config['imagesWebDir'])) {
+                $config['imagesWebDir'] = Yii::getAlias($config['imagesWebDir']);
+            }
+            if (isset($config['imagesDir'])) {
+                $config['imagesDir'] = Yii::getAlias($config['imagesDir']);
+            }
+            if (isset($config['defaultWebDir'])) {
+                $config['defaultWebDir'] = Yii::getAlias($config['defaultWebDir']);
+            }
+            if (isset($config['defaultDir'])) {
+                $config['defaultDir'] = Yii::getAlias($config['defaultDir']);
+            }
+            $this->_categories[$category] = $config;
+            return $this->_categories[$category];
+        }
+
+        return false;
     }
 
     /**
