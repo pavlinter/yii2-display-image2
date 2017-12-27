@@ -39,11 +39,11 @@ class ImageController extends Controller
         $image = $display->getImage($imageConfig);
 
         $img = \yii\imagine\Image::getImagine()->open($image->rootSrc);
+        $ext = pathinfo($image->rootSrc ,PATHINFO_EXTENSION);
         Yii::$app->response->format = \yii\web\Response::FORMAT_RAW;
         $headers = Yii::$app->response->headers;
-        $headers->add('Content-Type', 'image/jpeg');
-        $img->show('jpg', ['quality' => 100]);
+        $headers->add('Content-Type', 'image/' . ($ext == 'jpg' ? 'jpeg' : $ext));
+        $img->show($ext);
         return;
-
     }
 }
