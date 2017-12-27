@@ -530,7 +530,7 @@ class Display extends \yii\base\Component
             $img = $this->callResizeMode($image, $img);
             FileHelper::createDirectory($imagesDir . $image->sizeDirectory . $dir);
             $newImage = $imagesDir . $image->sizeDirectory . $dir . $imageName;
-            $img->save($newImage, ['quality' => 100]);
+            $img->save($newImage, ['jpeg_quality' => 100]);
 
             if ($this->displayModule->cacheSeconds === 'auto') {
                 $filemtime = filemtime($filePath);
@@ -592,7 +592,7 @@ class Display extends \yii\base\Component
 
             $newImage = $defaultDir . $image->sizeDirectory . $image->defaultImage;
 
-            $img->save($newImage, ['quality' => 100]);
+            $img->save($newImage, ['jpeg_quality' => 100]);
             if ($this->displayModule->cacheSeconds === 'auto') {
                 $filemtime = filemtime($filePath);
                 touch($newImage, $filemtime);

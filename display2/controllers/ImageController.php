@@ -43,7 +43,7 @@ class ImageController extends Controller
         Yii::$app->response->format = \yii\web\Response::FORMAT_RAW;
         $headers = Yii::$app->response->headers;
         $headers->add('Content-Type', 'image/' . ($ext == 'jpg' ? 'jpeg' : $ext));
-        $img->show($ext);
+        $img->show($ext, ['jpeg_quality' => 100]);
         return;
     }
 }
