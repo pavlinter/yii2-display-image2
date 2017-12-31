@@ -25,6 +25,7 @@ Configuration
 'modules' => [
   'display2'=> [
       'class'=>'pavlinter\display2\Module',
+      'appendTimestamp' => true,
       'categories' => [
           'all' => [
               'imagesWebDir' => '@web/display-images/images',
@@ -34,6 +35,7 @@ Configuration
               'mode' => \pavlinter\display2\objects\Image::MODE_OUTBOUND,
           ],
           'items' => [
+              'appendTimestamp' => false,
               'generalDefaultDir' => false,
               'imagesWebDir' => '@web/display-images/items',
               'imagesDir' => '@webroot/display-images/items',

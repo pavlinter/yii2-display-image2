@@ -141,6 +141,11 @@ class Image extends \yii\base\BaseObject
     public $rootSrc;
 
     /**
+     * @var boolean
+     */
+    public $appendTimestamp;
+
+    /**
      * @var string
      */
     private $_idRowPath = '';
@@ -194,9 +199,11 @@ class Image extends \yii\base\BaseObject
 
     public function appendTimestamp()
     {
-        $timestamp = @filemtime($this->rootSrc);
-        if ($timestamp > 0) {
-            $this->src .= "?v=" . $timestamp;
+        if ($this->appendTimestamp) {
+            $timestamp = @filemtime($this->rootSrc);
+            if ($timestamp > 0) {
+                $this->src .= "?v=" . $timestamp;
+            }
         }
     }
 

@@ -23,6 +23,7 @@ use yii\helpers\Url;
  *  'modules' => [
  *      'display2'=> [
  *          'class'=>'pavlinter\display2\Module',
+ *          'appendTimestamp' => true,
  *          'categories' => [
  *              'all' => [
  *                  'imagesWebDir' => '@web/display-images/images',
@@ -306,13 +307,15 @@ class Display extends \yii\base\Component
     public function getFileImgs($id_row, $category, $config = [], $options = [])
     {
         $options['isDisplayImagePath'] = true;
-        $images     = $this->getOriginalImages($id_row, $category, $options);
+        $images         = $this->getOriginalImages($id_row, $category, $options);
+        $categoryConfig = $this->getCategoryConfig($category);
 
         $displayImages = [];
         $config['category'] = $category;
 
         $loadingOptions = ArrayHelper::remove($config, 'loadingOptions', []);
         $imgOptions = ArrayHelper::remove($config, 'imgOptions', []);
+        $timestamp = ArrayHelper::remove($config, 'v', null);
 
         if ($id_row) {
             $config['id_row'] = $id_row;
@@ -322,12 +325,17 @@ class Display extends \yii\base\Component
                 $image['alt'] = null;
                 $config['image'] = $image['dirName'];
 
-                if (!isset($config['v'])) {
-                    $timestamp = @filemtime($image['fullPath']);
-                    if ($timestamp > 0) {
-                        $config['v'] = $timestamp;
+                if ($timestamp === null) {
+                    if ($categoryConfig['appendTimestamp']) {
+                        $timestamp = @filemtime($image['fullPath']);
+                        if ($timestamp > 0) {
+                            $config['v'] = $timestamp;
+                        }
                     }
+                } else {
+                    $config['v'] = $timestamp;
                 }
+
                 $image['display'] = $this->createUrl($config);
                 if (!isset($imgOptions['alt'])) {
                     $image['alt'] = $imgOptions['alt'] = pathinfo($image['fullPath'], PATHINFO_FILENAME);
@@ -432,6 +440,7 @@ class Display extends \yii\base\Component
                 $this->resizeDefault($image);
             }
         }
+
         $image->appendTimestamp();
         return $image;
     }
@@ -460,7 +469,13 @@ class Display extends \yii\base\Component
         if ($moduleConfig === false) {
             throw new InvalidConfigException('Set category in Module configuration!');
         }
-        return Yii::createObject(ArrayHelper::merge($moduleConfig, $config));
+
+        /* @var $imageObject Image */
+        $imageObject = Yii::createObject(ArrayHelper::merge($moduleConfig, $config));
+        if ($imageObject->appendTimestamp == null) {
+            $imageObject->appendTimestamp = $moduleConfig['appendTimestamp'];
+        }
+        return $imageObject;
     }
 
     /**
@@ -1039,6 +1054,11 @@ class Display extends \yii\base\Component
             if (isset($config['defaultDir'])) {
                 $config['defaultDir'] = Yii::getAlias($config['defaultDir']);
             }
+
+            if (!isset($config['appendTimestamp'])) {
+                $config['appendTimestamp'] = $this->displayModule->appendTimestamp;
+            }
+
             $this->_categories[$category] = $config;
             return $this->_categories[$category];
         }
