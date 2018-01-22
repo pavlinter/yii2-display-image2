@@ -25,6 +25,7 @@ class Image extends \yii\base\BaseObject
     const MODE_STATIC   = 'static';
     const MODE_MIN = 'min';
     const MODE_MIN_RESTRICT = 'min';
+    const MODE_MAX = 'max';
 
     /**
      * @var integer id from db
