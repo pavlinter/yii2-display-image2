@@ -229,6 +229,63 @@ class Display extends \yii\base\Component
         return $url;
     }
 
+
+    /**
+     * @param array $params
+     * @return string
+     */
+    public function createDirectUrl($params = [], $category, $categoryConfig)
+    {
+        if ($this->displayModule->enableDirectUrl === true) {
+
+            $imageConfig = ArrayHelper::merge([
+                'category' => $category,
+            ], $params);
+
+            foreach (['v'] as $n) {
+                if (isset($imageConfig[$n])) {
+                    unset($imageConfig[$n]);
+                }
+            }
+
+            /* @var $image \pavlinter\display2\objects\Image */
+            $image = $this->createImage($imageConfig);
+
+            if ($image->enableDirectUrl === true) {
+                $imageName      = $image->image;
+                $filePath       = $image->imagesDir . $image->getIdRowPath() . $imageName;
+                $basename       = basename($imageName);
+                $dir            = '';
+                if ($imageName != $basename) {
+                    $dir = dirname($imageName) . '/';
+                    $imageName = $basename;
+                    unset($basename);
+                }
+                $imagesDir      = Yii::getAlias(rtrim($this->displayModule->cacheDir, '/')) . '/' . $category . '/' . $image->getIdRowPath() . $image->sizeDirectory;
+                $imagesWebDir   = Yii::getAlias(rtrim($this->displayModule->cacheWebDir, '/')) . '/' . $category  . '/' . $image->getIdRowPath() . $image->sizeDirectory;
+
+                $exists = file_exists($imagesDir . $dir . $imageName);
+                if ($exists && $this->displayModule->cacheSeconds !== null) {
+                    $cacheFiletime = filemtime($image->imagesDir . $image->getIdRowPath() . $dir . $imageName);
+                    if ($this->displayModule->cacheSeconds === 'auto') {
+                        $filemtime = filemtime($filePath);
+                        if ($filemtime !== $cacheFiletime) {
+                            $exists = false;
+                        }
+                    } else {
+                        $exists = time() <= $this->displayModule->cacheSeconds + $cacheFiletime;
+                    }
+                }
+
+                if ($exists){
+                    return $imagesWebDir . $dir . $imageName;
+                }
+            }
+        }
+
+        return $this->createUrl($params);
+    }
+
     /**
      * @param $config
      * @param array $options
@@ -337,7 +394,7 @@ class Display extends \yii\base\Component
                     $config['v'] = $timestamp;
                 }
 
-                $image['display'] = $this->createUrl($config);
+                $image['display'] = $this->createDirectUrl($config, $category, $categoryConfig);
                 if (!isset($imgOptions['alt'])) {
                     $image['alt'] = $imgOptions['alt'] = pathinfo($image['fullPath'], PATHINFO_FILENAME);
                 }
@@ -365,7 +422,7 @@ class Display extends \yii\base\Component
                 $displayImages[$k] = $image;
             } else {
                 $config['image'] = $image;
-                $displayImages[$k] = $this->createUrl($config);
+                $displayImages[$k] = $this->createDirectUrl($config, $category, $categoryConfig);
             }
         }
         return $displayImages;
@@ -473,7 +530,12 @@ class Display extends \yii\base\Component
 
         /* @var $imageObject Image */
         $imageObject = Yii::createObject(ArrayHelper::merge($moduleConfig, $config));
-        if ($imageObject->appendTimestamp == null) {
+
+        if ($imageObject->enableDirectUrl === null) {
+            $imageObject->enableDirectUrl = $this->displayModule->enableDirectUrl;
+        }
+
+        if ($imageObject->appendTimestamp === null) {
             $imageObject->appendTimestamp = $moduleConfig['appendTimestamp'];
         }
         return $imageObject;
@@ -1074,5 +1136,4 @@ class Display extends \yii\base\Component
     {
         return Yii::$app->get($this->view);
     }
-
 }

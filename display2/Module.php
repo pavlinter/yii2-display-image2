@@ -39,6 +39,11 @@ class Module extends \yii\base\Module
      *]
      */
     public $categories;
+
+    /**
+     * @var string Enable direct url to resized image
+     */
+    public $enableDirectUrl = true;
     /**
      * @var string FULL path to cache directory
      */
@@ -60,6 +65,7 @@ class Module extends \yii\base\Module
      */
     public $imageClass = 'pavlinter\display2\objects\Image';
 
+
     /**
      * @var array|\Closure
      * @see imageClass
@@ -69,13 +75,13 @@ class Module extends \yii\base\Module
      * @var integer max image resize for one request
      */
     public $maxResize = 20;
-    
+
     /**
      * @var boolean
      * You can disable timestamp for all images if set false
      */
     public $appendTimestamp = true;
-    
+
     /**
      * @throws InvalidConfigException
      */

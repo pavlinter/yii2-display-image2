@@ -147,6 +147,11 @@ class Image extends \yii\base\BaseObject
     public $appendTimestamp;
 
     /**
+     * @var string Enable direct url to resized image
+     */
+    public $enableDirectUrl;
+
+    /**
      * @var string
      */
     private $_idRowPath = '';
