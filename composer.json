@@ -3,7 +3,7 @@
     "description": "Yii2: Auto resize image",
     "keywords": ["yii2", "displayimage", "display-image2", "display", "image", "resize", "crop", "auto crop", "auto resize"],
     "type": "yii2-extension",
-    "license": "BSD 3-Clause",
+    "license": "BSD-3-Clause",
     "support": {
         "issues": "https://github.com/pavlinter/yii2-display-image2/issues",
         "source": "https://github.com/pavlinter/yii2-display-image2"
