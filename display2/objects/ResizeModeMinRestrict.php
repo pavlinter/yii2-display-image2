@@ -26,11 +26,8 @@ class ResizeModeMinRestrict extends \yii\base\BaseObject implements \pavlinter\d
      */
     public function resize($image, $originalImage)
     {
-        if (empty($image->width)) {
-            throw new InvalidConfigException('The "width" property must be set for "' . $image::className() . '".');
-        }
-        if (empty($image->height)) {
-            throw new InvalidConfigException('The "height" property must be set for "' . $image::className() . '".');
+        if (empty($image->width) && empty($image->height)) {
+            throw new InvalidConfigException('The "width" or "height" property must be set for "' . $image::className() . '".');
         }
 
         /* @var $size \Imagine\Image\Box */
