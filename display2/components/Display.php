@@ -252,21 +252,33 @@ class Display extends \yii\base\Component
             $image = $this->createImage($imageConfig);
 
             if ($image->enableDirectUrl === true) {
-                $imageName      = $image->image;
-                $filePath       = $image->imagesDir . $image->getIdRowPath() . $imageName;
-                $basename       = basename($imageName);
-                $dir            = '';
-                if ($imageName != $basename) {
-                    $dir = dirname($imageName) . '/';
-                    $imageName = $basename;
-                    unset($basename);
-                }
-                $imagesDir      = Yii::getAlias(rtrim($this->displayModule->cacheDir, '/')) . '/' . $category . '/' . $image->getIdRowPath() . $image->sizeDirectory;
-                $imagesWebDir   = Yii::getAlias(rtrim($this->displayModule->cacheWebDir, '/')) . '/' . $category  . '/' . $image->getIdRowPath() . $image->sizeDirectory;
+                $dir = '';
+                $cacheDir = Yii::getAlias(rtrim($this->displayModule->cacheDir, '/')) . '/';
+                $cacheWebDir = Yii::getAlias(rtrim($this->displayModule->cacheWebDir, '/')) . '/';
 
-                $exists = file_exists($imagesDir . $dir . $imageName);
-                if ($exists && $this->displayModule->cacheSeconds !== null) {
+                if ($image->image) {
+                    $imageName      = $image->image;
+                    $filePath       = $image->imagesDir . $image->getIdRowPath() . $imageName;
+                    $basename       = basename($imageName);
+                    if ($imageName != $basename) {
+                        $dir = dirname($imageName) . '/';
+                        $imageName = $basename;
+                        unset($basename);
+                    }
+                    $imagesDir = $cacheDir . $category . '/' . $image->getIdRowPath() . $image->sizeDirectory;
+                    $imagesWebDir = $cacheWebDir . $category . '/' . $image->getIdRowPath() . $image->sizeDirectory;
+                    $exists = file_exists($imagesDir . $dir . $imageName);
                     $cacheFiletime = filemtime($image->imagesDir . $image->getIdRowPath() . $dir . $imageName);
+                } else {
+                    $imageName      = $image->defaultImage;
+                    $filePath       = $image->defaultDir . $imageName;
+                    $imagesDir = $cacheDir . $image->defaultCategory  . '/' . $image->sizeDirectory;
+                    $imagesWebDir = $cacheWebDir . $image->defaultCategory  . '/' . $image->sizeDirectory;
+                    $exists = file_exists($imagesDir . $dir . $imageName);
+                    $cacheFiletime = filemtime($filePath);
+                }
+
+                if ($exists && $this->displayModule->cacheSeconds !== null) {
                     if ($this->displayModule->cacheSeconds === 'auto') {
                         $filemtime = filemtime($filePath);
                         if ($filemtime !== $cacheFiletime) {
