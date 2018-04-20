@@ -26,6 +26,7 @@ class Image extends \yii\base\BaseObject
     const MODE_MIN = 'min';
     const MODE_MIN_RESTRICT = 'min_rest';
     const MODE_MAX = 'max';
+    const MODE_MAX_SIDE = 'max_side';
 
     /**
      * @var integer id from db
@@ -182,7 +183,7 @@ class Image extends \yii\base\BaseObject
         $this->defaultDir       = Yii::getAlias(rtrim($this->defaultDir, '/')) . '/';
         $this->defaultWebDir    = Yii::getAlias(rtrim($this->defaultWebDir, '/')) . '/';
 
-        if ($this->mode !== self::MODE_MIN) {
+        if (!in_array($this->mode, [static::MODE_MIN, static::MODE_MAX_SIDE])) {
             if ($this->width && !$this->height) {
                 $this->height = $this->width;
             } elseif(!$this->width && $this->height) {

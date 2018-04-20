@@ -194,6 +194,7 @@ class Display extends \yii\base\Component
         Image::MODE_MIN => 'pavlinter\display2\objects\ResizeModeMin',
         Image::MODE_MIN_RESTRICT => 'pavlinter\display2\objects\ResizeModeMinRestrict',
         Image::MODE_MAX => 'pavlinter\display2\objects\ResizeModeMax',
+        Image::MODE_MAX_SIDE => 'pavlinter\display2\objects\ResizeModeMaxSide',
     ];
 
     private $_displayModule;
