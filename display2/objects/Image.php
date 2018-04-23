@@ -209,9 +209,14 @@ class Image extends \yii\base\BaseObject
         if ($this->appendTimestamp) {
             $timestamp = @filemtime($this->rootSrc);
             if ($timestamp > 0) {
-                $this->src .= "?v=" . $timestamp;
+                $this->src .= $this->timestampParam($timestamp);
             }
         }
+    }
+
+    public function timestampParam($timestamp, $begin = "?")
+    {
+        return $begin . "v=" . $timestamp;
     }
 
     /**

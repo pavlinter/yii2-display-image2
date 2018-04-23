@@ -243,11 +243,7 @@ class Display extends \yii\base\Component
                 'category' => $category,
             ], $params);
 
-            foreach (['v'] as $n) {
-                if (isset($imageConfig[$n])) {
-                    unset($imageConfig[$n]);
-                }
-            }
+            $timestemp = ArrayHelper::remove($imageConfig, 'v');
 
             /* @var $image \pavlinter\display2\objects\Image */
             $image = $this->createImage($imageConfig);
@@ -279,6 +275,12 @@ class Display extends \yii\base\Component
                     $cacheFiletime = filemtime($filePath);
                 }
 
+                if ($timestemp === null) {
+                    $timestemp = $image->timestampParam($cacheFiletime);
+                } else {
+                    $timestemp = $image->timestampParam($timestemp);
+                }
+                
                 if ($exists && $this->displayModule->cacheSeconds !== null) {
                     if ($this->displayModule->cacheSeconds === 'auto') {
                         $filemtime = filemtime($filePath);
@@ -291,7 +293,7 @@ class Display extends \yii\base\Component
                 }
 
                 if ($exists){
-                    return $imagesWebDir . $dir . $imageName;
+                    return $imagesWebDir . $dir . $imageName . $timestemp;
                 }
             }
         }
