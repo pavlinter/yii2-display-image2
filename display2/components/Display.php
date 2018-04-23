@@ -3,7 +3,7 @@
 /**
  * @copyright Copyright &copy; Pavels Radajevs, 2015
  * @package yii2-display-image2
- * @version 2.3.3
+ * @version 2.3.4
  */
 
 namespace pavlinter\display2\components;
@@ -280,7 +280,7 @@ class Display extends \yii\base\Component
                 } else {
                     $timestemp = $image->timestampParam($timestemp);
                 }
-                
+
                 if ($exists && $this->displayModule->cacheSeconds !== null) {
                     if ($this->displayModule->cacheSeconds === 'auto') {
                         $filemtime = filemtime($filePath);
